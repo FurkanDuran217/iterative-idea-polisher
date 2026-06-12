@@ -13,17 +13,26 @@ This project is designed so an evaluator can inspect both product reasoning and 
 | DB persistence | `pipeline_runs`, `text_versions`, `audits`, `llm_calls` |
 | Prompts | `src/videoedgeai_task/llm.py` |
 | Full run example | `python scripts/demo.py` |
-| Metrics and convergence | `python scripts/evaluate_metrics.py` |
+| Metrics, baselines, and convergence | `python scripts/evaluate_metrics.py` |
+| Prompt variant rationale | `python scripts/evaluate_prompt_variants.py` |
+| Evaluation methodology | `docs/EVALUATION.md` |
+| Committed evaluation snapshot | `docs/EVALUATION_RESULTS.md` |
 | Tests | `pytest` |
 
 ## Excellent-Signal Checks
 
-- Run `python scripts/quality_gate.py` to execute tests, lint, type checks, and deterministic metrics.
+- Run `python scripts/quality_gate.py` to execute tests, lint, type checks, deterministic metrics,
+  and prompt-variant evaluation.
 - Inspect `GET /api/v1/pipeline/{tracking_id}` to see versions, audits, and LLM call records.
 - Inspect `GET /api/v1/pipeline/{tracking_id}/metrics` to see compact traceability metrics.
 - Inspect each `llm_calls` item for prompt version, exact request payload, provider params, model,
   input text version id, and output text version id.
-- Compare `v0.1.0` and `v0.2.0` to see the baseline implementation and the excellence pass.
+- Compare `outputs/evaluation_report.md` baselines to see how raw input, fixed-template output,
+  and the full pipeline differ.
+- Read `docs/EVALUATION_RESULTS.md` if you want the latest committed metric snapshot without
+  running the scripts.
+- Compare `v0.1.0`, `v0.2.0`, and later tags to see the baseline implementation and improvement
+  passes.
 
 ## Expected Behavior
 

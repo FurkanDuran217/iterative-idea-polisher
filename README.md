@@ -70,6 +70,21 @@ Run a multi-metric evaluation report:
 python scripts/evaluate_metrics.py
 ```
 
+This writes `outputs/evaluation_report.md` and `outputs/evaluation_metrics.json`. The report
+compares `original_input`, `fixed_template`, and `pipeline_mock` baselines and explains what each
+proxy metric does and does not prove. A committed snapshot is available in
+`docs/EVALUATION_RESULTS.md` for reviewers who inspect the GitHub repo without running the project.
+
+Run the offline prompt-variant evaluation:
+
+```bash
+python scripts/evaluate_prompt_variants.py
+```
+
+This writes `outputs/prompt_variant_report.md` and documents why the selected audit/polish prompts
+use strict JSON for audit and final-text-only output for polish. The same decision summary is
+included in `docs/EVALUATION_RESULTS.md`.
+
 Run the full quality gate:
 
 ```bash
@@ -180,6 +195,10 @@ expect most short ideas to converge in one to three iterations; beyond that, rep
 often become stylistic rather than substantive. Air-gapped refinement makes that behavior visible:
 each audit is a clean judgment of the latest text, not a continuation of the model's previous
 justification.
+
+The mock metrics should be read as engineering guardrails, not as proof of real writing quality.
+They verify traceability, convergence behavior, schema handling, and baseline deltas. Real quality
+needs rubric-based human review or a frozen evaluator model on representative inputs.
 
 ## Is The Final Version Actually Better?
 

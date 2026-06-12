@@ -23,13 +23,19 @@ provider params, input text version id, and output text version id when a polish
 `MAX_ITERATIONS` prevents runaway refinement. The finalize endpoint records whether the loop stopped
 because the audit returned no suggestions or because the iteration cap was reached.
 
-## 6. Failure Traces Are First-Class
+## 5. Failure Traces Are First-Class
 
 Provider exceptions and empty polish outputs are persisted as failed `llm_calls` before the API
 returns a gateway error. That gives reviewers and operators a concrete trace for debugging instead
 of a raw stack trace or missing history.
 
-## 5. Keep The API Small
+## 6. Evaluate Against Baselines
+
+The deterministic metrics compare the full pipeline with a no-op baseline and a fixed-template
+baseline. This keeps the report honest: label coverage proves structure, not real writing quality,
+so the docs call out human rubric review as the next evaluation layer.
+
+## 7. Keep The API Small
 
 The exercise does not require users, auth, queues, or a frontend. The service stays focused on the
 pipeline while still adding CI, metrics, and traceability.

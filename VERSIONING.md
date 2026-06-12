@@ -6,6 +6,7 @@ This project uses semantic versioning.
 - `v0.2.0`: excellence pass with CI, reviewer-facing metrics, and stronger documentation.
 - `v0.3.0`: rename pass for the final `VideoEdgeAI-Task` project identity.
 - `v0.4.0`: traceability and failure-hardening pass for LLM calls.
+- `v0.5.0`: baseline evaluation and prompt-variant experiment pass.
 
 Suggested release workflow:
 
@@ -14,6 +15,7 @@ pytest
 ruff check .
 mypy src
 python scripts/evaluate_metrics.py
+python scripts/evaluate_prompt_variants.py
 git tag -a vX.Y.Z -m "vX.Y.Z description"
 ```
 
