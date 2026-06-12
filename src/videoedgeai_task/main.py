@@ -4,12 +4,14 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 
 from videoedgeai_task import __version__
 from videoedgeai_task.api import router
 from videoedgeai_task.config import get_settings
 from videoedgeai_task.db import init_db
 from videoedgeai_task.schemas import HealthResponse
+from videoedgeai_task.ui import REVIEWER_CONSOLE_HTML
 
 
 @asynccontextmanager
@@ -22,6 +24,10 @@ def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title=settings.app_name, version=__version__, lifespan=lifespan)
     app.include_router(router)
+
+    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
+    async def reviewer_console() -> HTMLResponse:
+        return HTMLResponse(REVIEWER_CONSOLE_HTML)
 
     @app.get("/health", response_model=HealthResponse, tags=["health"])
     async def health() -> HealthResponse:

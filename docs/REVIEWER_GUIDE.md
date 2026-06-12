@@ -9,6 +9,7 @@ This project is designed so an evaluator can inspect both product reasoning and 
 | Start endpoint | `POST /api/v1/pipeline/start` |
 | Audit endpoint | `POST /api/v1/pipeline/audit/{tracking_id}` |
 | Finalize loop | `POST /api/v1/pipeline/finalize/{tracking_id}` |
+| Reviewer console | `GET /` |
 | Air-gapped LLM calls | `PipelineService` passes only current text/suggestions to the provider |
 | DB persistence | `pipeline_runs`, `text_versions`, `audits`, `llm_calls` |
 | Prompts | `src/videoedgeai_task/llm.py` |
@@ -23,6 +24,8 @@ This project is designed so an evaluator can inspect both product reasoning and 
 
 - Run `python scripts/quality_gate.py` to execute tests, lint, type checks, deterministic metrics,
   and prompt-variant evaluation.
+- Start `uvicorn videoedgeai_task.main:app --reload` and open `http://127.0.0.1:8000/` for the
+  browser reviewer console.
 - Inspect `GET /api/v1/pipeline/{tracking_id}` to see versions, audits, and LLM call records.
 - Inspect `GET /api/v1/pipeline/{tracking_id}/metrics` to see compact traceability metrics.
 - Inspect each `llm_calls` item for prompt version, exact request payload, provider params, model,

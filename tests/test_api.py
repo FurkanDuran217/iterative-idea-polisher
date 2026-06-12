@@ -3,6 +3,15 @@ from __future__ import annotations
 import httpx
 
 
+async def test_reviewer_console_loads(client: httpx.AsyncClient) -> None:
+    response = await client.get("/")
+
+    assert response.status_code == 200
+    assert "VideoEdgeAI-Task" in response.text
+    assert "/api/v1/pipeline/start" in response.text
+    assert "finalizeBtn" in response.text
+
+
 async def test_full_pipeline_records_history(client: httpx.AsyncClient) -> None:
     start = await client.post(
         "/api/v1/pipeline/start",

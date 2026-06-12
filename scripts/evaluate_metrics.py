@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+import sys
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -11,8 +12,11 @@ from typing import Any
 
 import httpx
 
-from videoedgeai_task.db import configure_database, dispose_db, drop_db
-from videoedgeai_task.main import app
+WORKSPACE = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(WORKSPACE / "src"))
+
+from videoedgeai_task.db import configure_database, dispose_db, drop_db  # noqa: E402
+from videoedgeai_task.main import app  # noqa: E402
 
 REQUIRED_LABELS = ("Problem:", "Audience:", "Value:", "Next step:", "Success measure:")
 STOP_WORDS = {

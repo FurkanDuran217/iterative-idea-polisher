@@ -44,6 +44,12 @@ python -m pip install -e ".[dev]"
 uvicorn videoedgeai_task.main:app --reload
 ```
 
+Open the reviewer console:
+
+```text
+http://127.0.0.1:8000/
+```
+
 Then run:
 
 ```bash

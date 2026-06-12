@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "videoedgeai-task"
-version = "0.5.0"
+version = "0.6.0"
 description = "VideoEdgeAI task: air-gapped iterative idea polishing pipeline built with FastAPI."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -39,6 +39,7 @@ select = ["E", "F", "I", "B", "UP", "ASYNC"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+pythonpath = ["src"]
 
 [tool.mypy]
 python_version = "3.11"
