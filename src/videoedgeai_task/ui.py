@@ -10,19 +10,25 @@ REVIEWER_CONSOLE_HTML = """
   <style>
     :root {
       color-scheme: light;
-      --bg: #f7f8fb;
+      --bg: #eef2f5;
       --panel: #ffffff;
+      --panel-soft: #f8fafc;
       --ink: #17202a;
-      --muted: #65758b;
-      --line: #d8dee9;
-      --accent: #0f766e;
-      --accent-strong: #115e59;
-      --warn: #b45309;
-      --error: #b91c1c;
-      --shadow: 0 18px 40px rgba(20, 32, 45, 0.08);
+      --muted: #64748b;
+      --line: #d8e0ea;
+      --teal: #0f766e;
+      --teal-dark: #115e59;
+      --blue: #2563eb;
+      --amber: #b45309;
+      --red: #b91c1c;
+      --ok-bg: #ecfdf5;
+      --warn-bg: #fff7ed;
+      --shadow: 0 16px 34px rgba(30, 41, 59, 0.08);
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
@@ -34,22 +40,39 @@ REVIEWER_CONSOLE_HTML = """
     }
 
     header {
-      border-bottom: 1px solid var(--line);
       background: var(--panel);
+      border-bottom: 1px solid var(--line);
     }
 
-    main,
-    .topbar {
-      width: min(1180px, calc(100% - 32px));
+    .topbar,
+    main {
+      width: min(1240px, calc(100% - 32px));
       margin: 0 auto;
     }
 
     .topbar {
+      min-height: 70px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      min-height: 72px;
       gap: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--teal);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
     }
 
     h1 {
@@ -59,27 +82,45 @@ REVIEWER_CONSOLE_HTML = """
       letter-spacing: 0;
     }
 
-    .provider {
-      display: flex;
-      gap: 8px;
-      align-items: center;
+    .subline {
       color: var(--muted);
       font-size: 13px;
+      margin-top: 2px;
     }
 
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--accent);
-      display: inline-block;
+    .pill {
+      min-height: 30px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 10px;
+      background: var(--panel-soft);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .pill.ok {
+      color: var(--teal-dark);
+      background: var(--ok-bg);
+      border-color: #a7f3d0;
+    }
+
+    .pill.warn {
+      color: var(--amber);
+      background: var(--warn-bg);
+      border-color: #fed7aa;
     }
 
     main {
+      padding: 22px 0 36px;
       display: grid;
-      grid-template-columns: minmax(320px, 0.9fr) minmax(460px, 1.35fr);
+      grid-template-columns: minmax(310px, 380px) minmax(0, 1fr);
       gap: 18px;
-      padding: 22px 0 34px;
+      align-items: start;
     }
 
     section {
@@ -91,18 +132,19 @@ REVIEWER_CONSOLE_HTML = """
     }
 
     .panel-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--line);
     }
 
-    h2 {
+    h2,
+    h3 {
       margin: 0;
       font-size: 15px;
-      font-weight: 720;
+      font-weight: 740;
       letter-spacing: 0;
     }
 
@@ -110,12 +152,17 @@ REVIEWER_CONSOLE_HTML = """
       padding: 16px;
     }
 
+    .control-panel {
+      position: sticky;
+      top: 16px;
+    }
+
     label {
       display: block;
       color: var(--muted);
       font-size: 13px;
-      font-weight: 650;
-      margin-bottom: 8px;
+      font-weight: 700;
+      margin-bottom: 7px;
     }
 
     textarea,
@@ -123,36 +170,42 @@ REVIEWER_CONSOLE_HTML = """
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 7px;
-      color: var(--ink);
       background: #ffffff;
+      color: var(--ink);
       font: inherit;
       outline: none;
     }
 
     textarea {
-      min-height: 154px;
+      min-height: 170px;
       resize: vertical;
       padding: 12px;
     }
 
     input {
-      height: 42px;
-      padding: 0 11px;
+      min-height: 40px;
+      padding: 0 10px;
+      font-size: 13px;
     }
 
     textarea:focus,
     input:focus {
-      border-color: var(--accent);
+      border-color: var(--teal);
       box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
     }
 
     .field + .field,
-    .field + .actions,
-    .actions + .field {
+    .field + .button-stack,
+    .button-stack + .field {
       margin-top: 14px;
     }
 
-    .actions {
+    .button-stack {
+      display: grid;
+      gap: 8px;
+    }
+
+    .button-row {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
@@ -160,145 +213,255 @@ REVIEWER_CONSOLE_HTML = """
 
     button {
       min-height: 40px;
-      border: 1px solid var(--line);
       border-radius: 7px;
+      border: 1px solid var(--line);
       background: #ffffff;
       color: var(--ink);
-      font: inherit;
-      font-weight: 700;
       cursor: pointer;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 760;
     }
 
     button.primary {
-      border-color: var(--accent);
-      background: var(--accent);
-      color: #ffffff;
+      background: var(--teal);
+      border-color: var(--teal);
+      color: white;
+    }
+
+    button.secondary {
+      border-color: #bfdbfe;
+      color: var(--blue);
+      background: #eff6ff;
     }
 
     button:hover {
-      border-color: var(--accent-strong);
+      border-color: var(--teal-dark);
     }
 
     button:disabled {
+      opacity: 0.55;
       cursor: not-allowed;
-      opacity: 0.58;
     }
 
-    .status {
-      min-height: 24px;
+    .workflow {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .step {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 10px;
+      min-height: 64px;
+      background: var(--panel-soft);
+    }
+
+    .step b {
+      display: block;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .step span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .step.done {
+      border-color: #99f6e4;
+      background: #f0fdfa;
+    }
+
+    .step.active {
+      border-color: #fbbf24;
+      background: #fffbeb;
+    }
+
+    .notice {
+      min-height: 34px;
       margin-top: 12px;
+      padding: 8px 10px;
+      border-radius: 7px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
       color: var(--muted);
       font-size: 13px;
     }
 
-    .status.error {
-      color: var(--error);
+    .notice.error {
+      color: var(--red);
+      background: #fef2f2;
+      border-color: #fecaca;
     }
 
-    .grid {
+    .content-stack {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
+      gap: 18px;
+    }
+
+    .result-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(250px, 0.85fr);
+      gap: 14px;
+    }
+
+    .output {
+      min-height: 312px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfdff;
+      padding: 14px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font-size: 14px;
+    }
+
+    .empty {
+      color: var(--muted);
+    }
+
+    .suggestions {
+      display: grid;
+      gap: 8px;
+    }
+
+    .suggestion {
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--amber);
+      border-radius: 8px;
+      padding: 10px;
+      background: #fffdf8;
+      font-size: 13px;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
     }
 
     .metric {
       border: 1px solid var(--line);
       border-radius: 8px;
+      background: var(--panel-soft);
       padding: 10px;
-      min-height: 74px;
+      min-height: 72px;
     }
 
     .metric b {
       display: block;
-      font-size: 22px;
+      font-size: 20px;
       line-height: 1.1;
+      overflow-wrap: anywhere;
     }
 
     .metric span {
-      color: var(--muted);
       display: block;
+      margin-top: 7px;
+      color: var(--muted);
       font-size: 12px;
-      margin-top: 6px;
+      font-weight: 700;
     }
 
-    .tabs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .tab {
-      min-height: 34px;
-      padding: 0 10px;
-      font-size: 13px;
-    }
-
-    .tab.active {
-      border-color: var(--accent);
-      color: var(--accent-strong);
-    }
-
-    pre {
-      margin: 0;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      font-size: 13px;
-      background: #f4f6f8;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 12px;
-      min-height: 190px;
-      max-height: 560px;
-      overflow: auto;
-    }
-
-    .split {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-    }
-
-    .list {
+    .trace-list {
       display: grid;
       gap: 8px;
     }
 
-    .item {
+    .trace-item {
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 10px;
       background: #ffffff;
     }
 
-    .item strong {
-      display: block;
-      margin-bottom: 5px;
+    .trace-top {
+      display: grid;
+      grid-template-columns: 82px 110px 1fr 80px;
+      gap: 10px;
+      align-items: center;
+      font-size: 13px;
     }
 
-    .item small {
+    .trace-type {
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--teal-dark);
+    }
+
+    .trace-hash {
       color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    @media (max-width: 880px) {
-      main {
+    details {
+      margin-top: 8px;
+    }
+
+    summary {
+      cursor: pointer;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    pre {
+      margin: 8px 0 0;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #f8fafc;
+      padding: 10px;
+      max-height: 300px;
+      overflow: auto;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font-size: 12px;
+    }
+
+    .footer-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 980px) {
+      main,
+      .result-layout {
         grid-template-columns: 1fr;
       }
 
+      .control-panel {
+        position: static;
+      }
+    }
+
+    @media (max-width: 680px) {
       .topbar {
         align-items: flex-start;
         flex-direction: column;
         padding: 14px 0;
       }
-    }
 
-    @media (max-width: 560px) {
       main,
       .topbar {
-        width: min(100% - 20px, 1180px);
+        width: min(100% - 20px, 1240px);
       }
 
-      .grid,
-      .actions {
+      .workflow,
+      .metric-grid,
+      .button-row,
+      .trace-top {
         grid-template-columns: 1fr;
       }
     }
@@ -307,86 +470,135 @@ REVIEWER_CONSOLE_HTML = """
 <body>
   <header>
     <div class="topbar">
-      <h1>VideoEdgeAI-Task</h1>
-      <div class="provider"><span class="dot"></span><span id="health">Checking</span></div>
+      <div class="brand">
+        <div class="mark">VE</div>
+        <div>
+          <h1>VideoEdgeAI-Task</h1>
+          <div class="subline">Iterative Idea Polisher reviewer console</div>
+        </div>
+      </div>
+      <span class="pill" id="healthPill">checking runtime</span>
     </div>
   </header>
+
   <main>
-    <section>
+    <section class="control-panel">
       <div class="panel-header">
-        <h2>Pipeline</h2>
+        <h2>Run Control</h2>
+        <span class="pill" id="runStatus">idle</span>
       </div>
       <div class="panel-body">
+        <div class="workflow">
+          <div class="step" id="stepStart"><b>1</b><span>Start</span></div>
+          <div class="step" id="stepAudit"><b>2</b><span>Audit</span></div>
+          <div class="step" id="stepFinal"><b>3</b><span>Finalize</span></div>
+        </div>
+
         <div class="field">
-          <label for="ideaText">Idea text</label>
+          <label for="ideaText">Idea</label>
           <textarea id="ideaText">make notes better for founders</textarea>
         </div>
-        <div class="actions">
-          <button class="primary" id="startBtn" type="button">Start</button>
-          <button id="finalizeBtn" type="button">Finalize</button>
-          <button id="auditBtn" type="button">Audit</button>
-          <button id="refreshBtn" type="button">Refresh</button>
+
+        <div class="button-stack">
+          <button class="primary" id="runFullBtn" type="button">Run Full Pipeline</button>
+          <div class="button-row">
+            <button id="startBtn" type="button">Start</button>
+            <button id="auditBtn" type="button">Audit</button>
+          </div>
+          <div class="button-row">
+            <button id="finalizeBtn" type="button">Finalize</button>
+            <button class="secondary" id="resetBtn" type="button">Reset</button>
+          </div>
         </div>
+
         <div class="field">
           <label for="trackingId">Tracking ID</label>
           <input id="trackingId" autocomplete="off" spellcheck="false">
         </div>
-        <div id="status" class="status">Ready</div>
+
+        <div id="notice" class="notice" aria-live="polite">Ready.</div>
       </div>
     </section>
 
-    <section>
-      <div class="panel-header">
-        <h2>Run State</h2>
-        <div class="tabs">
-          <button class="tab active" data-tab="summary" type="button">Summary</button>
-          <button class="tab" data-tab="versions" type="button">Versions</button>
-          <button class="tab" data-tab="calls" type="button">LLM Calls</button>
-          <button class="tab" data-tab="json" type="button">JSON</button>
+    <div class="content-stack">
+      <section>
+        <div class="panel-header">
+          <h2>Current / Final Text</h2>
+          <span class="pill" id="convergencePill">not run</span>
         </div>
+        <div class="panel-body">
+          <div class="result-layout">
+            <div>
+              <div class="output empty" id="outputText">
+                Run the pipeline to see the polished text.
+              </div>
+            </div>
+            <div>
+              <h3>Audit Suggestions</h3>
+              <div class="suggestions" id="suggestionsList" style="margin-top: 10px;"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="panel-header">
+          <h2>Run Metrics</h2>
+          <span class="pill" id="tracePill">trace pending</span>
+        </div>
+        <div class="panel-body">
+          <div class="metric-grid">
+            <div class="metric"><b id="metricStatus">-</b><span>Status</span></div>
+            <div class="metric"><b id="metricVersions">0</b><span>Versions</span></div>
+            <div class="metric"><b id="metricAudits">0</b><span>Audits</span></div>
+            <div class="metric"><b id="metricCalls">0</b><span>LLM Calls</span></div>
+            <div class="metric"><b id="metricWords">0</b><span>Word Delta</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="panel-header">
+          <h2>LLM Trace</h2>
+          <button id="refreshBtn" type="button">Refresh</button>
+        </div>
+        <div class="panel-body">
+          <div class="trace-list" id="traceList"></div>
+        </div>
+      </section>
+
+      <div class="footer-row">
+        <span id="lastAction">No run loaded.</span>
+        <span>Mock provider by default</span>
       </div>
-      <div class="panel-body">
-        <div class="grid">
-          <div class="metric"><b id="versionCount">0</b><span>versions</span></div>
-          <div class="metric"><b id="auditCount">0</b><span>audits</span></div>
-          <div class="metric"><b id="llmCount">0</b><span>LLM calls</span></div>
-        </div>
-        <div class="split" style="margin-top: 12px;">
-          <div id="summaryTab">
-            <pre id="summaryOutput">No run loaded.</pre>
-          </div>
-          <div id="versionsTab" hidden>
-            <div id="versionsOutput" class="list"></div>
-          </div>
-          <div id="callsTab" hidden>
-            <div id="callsOutput" class="list"></div>
-          </div>
-          <div id="jsonTab" hidden>
-            <pre id="jsonOutput">{}</pre>
-          </div>
-        </div>
-      </div>
-    </section>
+    </div>
   </main>
 
   <script>
     const state = {
       detail: null,
       metrics: null,
-      final: null,
       audit: null,
+      final: null,
     };
 
     const $ = (id) => document.getElementById(id);
 
-    function setStatus(message, isError = false) {
-      const status = $("status");
-      status.textContent = message;
-      status.className = isError ? "status error" : "status";
+    function setNotice(message, isError = false) {
+      const notice = $("notice");
+      notice.textContent = message;
+      notice.className = isError ? "notice error" : "notice";
     }
 
     function setBusy(isBusy) {
-      ["startBtn", "auditBtn", "finalizeBtn", "refreshBtn"].forEach((id) => {
+      [
+        "runFullBtn",
+        "startBtn",
+        "auditBtn",
+        "finalizeBtn",
+        "refreshBtn",
+        "resetBtn",
+      ].forEach((id) => {
         $(id).disabled = isBusy;
       });
     }
@@ -409,133 +621,191 @@ REVIEWER_CONSOLE_HTML = """
       return $("trackingId").value.trim();
     }
 
-    async function startPipeline() {
-      setBusy(true);
-      try {
-        const text = $("ideaText").value;
-        const payload = await requestJson(
-          "POST",
-          "/api/v1/pipeline/start",
-          { text },
-        );
-        $("trackingId").value = payload.tracking_id;
-        setStatus("Started " + payload.tracking_id);
-        await refreshRun();
-      } catch (error) {
-        setStatus(error.message, true);
-      } finally {
-        setBusy(false);
-      }
+    async function startRun() {
+      const text = $("ideaText").value;
+      const payload = await requestJson("POST", "/api/v1/pipeline/start", { text });
+      $("trackingId").value = payload.tracking_id;
+      state.audit = null;
+      state.final = null;
+      await loadRun();
+      return payload.tracking_id;
     }
 
-    async function auditPipeline() {
-      await postRunAction("audit");
+    async function startOnly() {
+      await withBusy(async () => {
+        const id = await startRun();
+        setNotice("Started " + id);
+      });
     }
 
-    async function finalizePipeline() {
-      await postRunAction("finalize");
+    async function auditRun() {
+      await withBusy(async () => {
+        const id = requireTrackingId();
+        state.audit = await requestJson("POST", `/api/v1/pipeline/audit/${id}`);
+        await loadRun();
+        setNotice("Audit complete.");
+      });
     }
 
-    async function postRunAction(action) {
+    async function finalizeRun() {
+      await withBusy(async () => {
+        const id = requireTrackingId();
+        state.final = await requestJson("POST", `/api/v1/pipeline/finalize/${id}`);
+        await loadRun();
+        setNotice("Finalize complete.");
+      });
+    }
+
+    async function runFullPipeline() {
+      await withBusy(async () => {
+        const id = await startRun();
+        state.final = await requestJson("POST", `/api/v1/pipeline/finalize/${id}`);
+        await loadRun();
+        setNotice("Pipeline complete.");
+      });
+    }
+
+    async function loadRun() {
       const id = trackingId();
       if (!id) {
-        setStatus("Tracking ID required", true);
+        render();
         return;
       }
-      setBusy(true);
-      try {
-        const payload = await requestJson(
-          "POST",
-          `/api/v1/pipeline/${action}/${id}`,
-        );
-        state[action === "audit" ? "audit" : "final"] = payload;
-        setStatus(action.charAt(0).toUpperCase() + action.slice(1) + " complete");
-        await refreshRun();
-      } catch (error) {
-        setStatus(error.message, true);
-      } finally {
-        setBusy(false);
-      }
+      state.detail = await requestJson("GET", `/api/v1/pipeline/${id}`);
+      state.metrics = await requestJson("GET", `/api/v1/pipeline/${id}/metrics`);
+      $("lastAction").textContent = "Loaded " + id;
+      render();
     }
 
     async function refreshRun() {
-      const id = trackingId();
-      if (!id) {
-        render();
-        return;
-      }
+      await withBusy(async () => {
+        await loadRun();
+        setNotice(trackingId() ? "Run refreshed." : "No tracking ID.");
+      });
+    }
+
+    function resetUi() {
+      $("trackingId").value = "";
+      state.detail = null;
+      state.metrics = null;
+      state.audit = null;
+      state.final = null;
+      $("lastAction").textContent = "No run loaded.";
+      setNotice("Ready.");
+      render();
+    }
+
+    async function withBusy(task) {
       setBusy(true);
       try {
-        state.detail = await requestJson("GET", `/api/v1/pipeline/${id}`);
-        state.metrics = await requestJson("GET", `/api/v1/pipeline/${id}/metrics`);
-        setStatus("Loaded " + id);
-        render();
+        await task();
       } catch (error) {
-        setStatus(error.message, true);
+        setNotice(error.message, true);
       } finally {
         setBusy(false);
       }
+    }
+
+    function requireTrackingId() {
+      const id = trackingId();
+      if (!id) {
+        throw new Error("Tracking ID required.");
+      }
+      return id;
     }
 
     function render() {
       const detail = state.detail;
       const metrics = state.metrics || {};
-      $("versionCount").textContent = metrics.version_count || 0;
-      $("auditCount").textContent = metrics.audit_count || 0;
-      $("llmCount").textContent = metrics.llm_call_count || 0;
+      const loaded = Boolean(detail);
+      const audits = loaded ? detail.audits : [];
+      const calls = loaded ? detail.llm_calls : [];
+      const latestAudit = audits.length ? audits[audits.length - 1] : null;
+      const suggestions = state.audit?.suggestions || latestAudit?.suggestions || [];
 
+      $("runStatus").textContent = loaded ? detail.status : "idle";
+      $("metricStatus").textContent = loaded ? detail.status : "-";
+      $("metricVersions").textContent = metrics.version_count || 0;
+      $("metricAudits").textContent = metrics.audit_count || 0;
+      $("metricCalls").textContent = metrics.llm_call_count || 0;
+      $("metricWords").textContent = metrics.word_delta || 0;
+
+      const traceOk = Boolean(metrics.air_gap_trace_ok);
+      $("tracePill").textContent = traceOk ? "trace OK" : "trace pending";
+      $("tracePill").className = traceOk ? "pill ok" : "pill warn";
+
+      const convergence = state.final?.convergence_reason || "not run";
+      $("convergencePill").textContent = convergence;
+      $("convergencePill").className = convergence === "no_suggestions" ? "pill ok" : "pill";
+
+      renderWorkflow(loaded, audits.length, detail?.status);
+      renderOutput(detail);
+      renderSuggestions(suggestions);
+      renderTrace(calls);
+    }
+
+    function renderWorkflow(loaded, auditCount, status) {
+      $("stepStart").className = loaded ? "step done" : "step active";
+      $("stepAudit").className = auditCount ? "step done" : loaded ? "step active" : "step";
+      $("stepFinal").className = status === "completed"
+        ? "step done"
+        : auditCount
+          ? "step active"
+          : "step";
+    }
+
+    function renderOutput(detail) {
+      const output = $("outputText");
       if (!detail) {
-        $("summaryOutput").textContent = "No run loaded.";
-        $("versionsOutput").innerHTML = "";
-        $("callsOutput").innerHTML = "";
-        $("jsonOutput").textContent = "{}";
+        output.textContent = "Run the pipeline to see the polished text.";
+        output.className = "output empty";
         return;
       }
+      output.textContent = detail.current_text;
+      output.className = "output";
+    }
 
-      const summaryLines = [
-        `Status: ${detail.status}`,
-        `Trace OK: ${metrics.air_gap_trace_ok}`,
-        `Latest needs polish: ${metrics.latest_needs_polish}`,
-        "",
-        "Current text:",
-        detail.current_text,
-      ];
-      if (state.audit) {
-        summaryLines.splice(
-          3,
-          0,
-          `Last audit suggestions: ${state.audit.suggestions.length}`,
-        );
+    function renderSuggestions(suggestions) {
+      const list = $("suggestionsList");
+      if (!suggestions.length) {
+        list.innerHTML = '<div class="suggestion">No active suggestions.</div>';
+        return;
       }
-      if (state.final) {
-        summaryLines.splice(3, 0, `Convergence: ${state.final.convergence_reason}`);
-      }
-      $("summaryOutput").textContent = summaryLines.join("\\n");
-
-      $("versionsOutput").innerHTML = detail.versions.map((version) => `
-        <div class="item">
-          <strong>v${version.version_number} · ${version.source_step}</strong>
-          <small>${version.created_at}</small>
-          <pre>${escapeHtml(version.text)}</pre>
+      list.innerHTML = suggestions.map((suggestion, index) => `
+        <div class="suggestion">
+          <strong>${index + 1}.</strong> ${escapeHtml(suggestion)}
         </div>
       `).join("");
+    }
 
-      $("callsOutput").innerHTML = detail.llm_calls.map((call) => `
-        <div class="item">
-          <strong>${call.prompt_type} · ${call.prompt_version}</strong>
-          <small>${call.provider} · ${call.model_name || "mock"} · ${call.request_hash}</small>
-          <pre>${escapeHtml(JSON.stringify({
-            input_text_version_id: call.input_text_version_id,
-            output_text_version_id: call.output_text_version_id,
-            success: call.success,
-            request_payload: call.request_payload,
-            parsed_output: call.parsed_output,
-            error: call.error,
-          }, null, 2))}</pre>
+    function renderTrace(calls) {
+      const list = $("traceList");
+      if (!calls.length) {
+        list.innerHTML = '<div class="trace-item empty">No LLM calls recorded.</div>';
+        return;
+      }
+      list.innerHTML = calls.map((call) => `
+        <div class="trace-item">
+          <div class="trace-top">
+            <div class="trace-type">${escapeHtml(call.prompt_type)}</div>
+            <div>${escapeHtml(call.prompt_version)}</div>
+            <div class="trace-hash">${escapeHtml(call.request_hash)}</div>
+            <div>${call.success ? "success" : "failed"}</div>
+          </div>
+          <details>
+            <summary>Payload and parsed output</summary>
+            <pre>${escapeHtml(JSON.stringify({
+              input_text_version_id: call.input_text_version_id,
+              output_text_version_id: call.output_text_version_id,
+              model_name: call.model_name,
+              provider_params: call.provider_params,
+              request_payload: call.request_payload,
+              parsed_output: call.parsed_output,
+              error: call.error,
+            }, null, 2))}</pre>
+          </details>
         </div>
       `).join("");
-
-      $("jsonOutput").textContent = JSON.stringify({ detail, metrics }, null, 2);
     }
 
     function escapeHtml(value) {
@@ -548,31 +818,24 @@ REVIEWER_CONSOLE_HTML = """
       }[char]));
     }
 
-    function activateTab(name) {
-      document.querySelectorAll(".tab").forEach((button) => {
-        button.classList.toggle("active", button.dataset.tab === name);
-      });
-      $("summaryTab").hidden = name !== "summary";
-      $("versionsTab").hidden = name !== "versions";
-      $("callsTab").hidden = name !== "calls";
-      $("jsonTab").hidden = name !== "json";
-    }
-
-    document.querySelectorAll(".tab").forEach((button) => {
-      button.addEventListener("click", () => activateTab(button.dataset.tab));
-    });
-    $("startBtn").addEventListener("click", startPipeline);
-    $("auditBtn").addEventListener("click", auditPipeline);
-    $("finalizeBtn").addEventListener("click", finalizePipeline);
+    $("runFullBtn").addEventListener("click", runFullPipeline);
+    $("startBtn").addEventListener("click", startOnly);
+    $("auditBtn").addEventListener("click", auditRun);
+    $("finalizeBtn").addEventListener("click", finalizeRun);
     $("refreshBtn").addEventListener("click", refreshRun);
+    $("resetBtn").addEventListener("click", resetUi);
 
     requestJson("GET", "/health")
       .then((payload) => {
-        $("health").textContent = `${payload.provider} · max ${payload.max_iterations}`;
+        $("healthPill").textContent = `${payload.provider} - max ${payload.max_iterations}`;
+        $("healthPill").className = "pill ok";
       })
       .catch(() => {
-        $("health").textContent = "health unavailable";
+        $("healthPill").textContent = "runtime unavailable";
+        $("healthPill").className = "pill warn";
       });
+
+    render();
   </script>
 </body>
 </html>

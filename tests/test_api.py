@@ -8,6 +8,8 @@ async def test_reviewer_console_loads(client: httpx.AsyncClient) -> None:
 
     assert response.status_code == 200
     assert "VideoEdgeAI-Task" in response.text
+    assert "Run Full Pipeline" in response.text
+    assert "Current / Final Text" in response.text
     assert "/api/v1/pipeline/start" in response.text
     assert "finalizeBtn" in response.text
 
