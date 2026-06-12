@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from videoedgeai_task.config import Settings, get_settings
 from videoedgeai_task.db import get_session
-from videoedgeai_task.llm import LLMProviderError, get_llm_provider
+from videoedgeai_task.llm import AuditVerdict, LLMProviderError, get_llm_provider
 from videoedgeai_task.schemas import (
     AuditRead,
     AuditResponse,
@@ -62,10 +62,27 @@ async def audit_pipeline(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except LLMProviderError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    verdict = getattr(
+        audit,
+        "verdict",
+        AuditVerdict(
+            is_perfect=not audit.needs_polish,
+            quality_score=95 if not audit.needs_polish else 68,
+            rationale=(
+                "The idea is ready for review."
+                if not audit.needs_polish
+                else "The idea still needs concrete refinement."
+            ),
+            suggestions=audit.suggestions,
+        ),
+    )
     return AuditResponse(
         tracking_id=tracking_id,
-        suggestions=audit.suggestions,
-        needs_polish=audit.needs_polish,
+        suggestions=verdict.suggestions,
+        needs_polish=verdict.needs_polish,
+        is_perfect=verdict.is_perfect,
+        quality_score=verdict.quality_score,
+        rationale=verdict.rationale,
         iteration=audit.iteration,
     )
 

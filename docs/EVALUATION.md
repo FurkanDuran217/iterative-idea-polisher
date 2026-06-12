@@ -57,11 +57,12 @@ A production-quality evaluation would add human review and LLM-judge sampling wi
 
 The selected prompt pair is:
 
-- `audit.strict_json_v1`
-- `polish.final_text_only_v1`
+- `audit.verdict_json_v2`
+- `polish.idea_brief_v2`
 
 This pair is selected because it keeps the API contract simple:
 
+- audits explicitly say whether the text is perfect;
 - audits are easy to parse and retry;
 - polish outputs do not contaminate text versions with explanations;
 - each air-gapped call can be stored with a prompt version and exact request payload.

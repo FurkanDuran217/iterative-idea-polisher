@@ -10,6 +10,7 @@ from videoedgeai_task.llm import (
     MockLLMProvider,
     get_llm_provider,
     parse_audit_json,
+    parse_audit_verdict,
 )
 
 
@@ -18,6 +19,24 @@ def test_parse_audit_json_accepts_suggestions() -> None:
         "make it clearer",
         "add metric",
     ]
+
+
+def test_parse_audit_verdict_accepts_explicit_perfection() -> None:
+    verdict = parse_audit_verdict(
+        json.dumps(
+            {
+                "is_perfect": True,
+                "quality_score": 97,
+                "rationale": "Ready for review.",
+                "suggestions": [],
+            }
+        )
+    )
+
+    assert verdict.is_perfect is True
+    assert verdict.needs_polish is False
+    assert verdict.quality_score == 97
+    assert verdict.rationale == "Ready for review."
 
 
 def test_parse_audit_json_accepts_json_code_fence() -> None:

@@ -11,6 +11,7 @@ This project is designed so an evaluator can inspect both product reasoning and 
 | Finalize loop | `POST /api/v1/pipeline/finalize/{tracking_id}` |
 | Reviewer console | `GET /` |
 | Air-gapped LLM calls | `PipelineService` passes only current text/suggestions to the provider |
+| Model declares text perfect | Audit response includes `is_perfect`, `quality_score`, and `rationale` |
 | DB persistence | `pipeline_runs`, `text_versions`, `audits`, `llm_calls` |
 | Prompts | `src/videoedgeai_task/llm.py` |
 | Full run example | `python scripts/demo.py` |
@@ -28,6 +29,7 @@ This project is designed so an evaluator can inspect both product reasoning and 
   the browser reviewer console.
 - Inspect `GET /api/v1/pipeline/{tracking_id}` to see versions, audits, and LLM call records.
 - Inspect `GET /api/v1/pipeline/{tracking_id}/metrics` to see compact traceability metrics.
+- Confirm the latest audit verdict exposes whether the fresh model call declared the text perfect.
 - Inspect each `llm_calls` item for prompt version, exact request payload, provider params, model,
   input text version id, and output text version id.
 - Compare `outputs/evaluation_report.md` baselines to see how raw input, fixed-template output,
@@ -39,7 +41,7 @@ This project is designed so an evaluator can inspect both product reasoning and 
 
 ## Expected Behavior
 
-- Vague ideas should usually polish once, then converge.
-- Already structured ideas should audit cleanly and skip polishing.
+- Vague ideas should usually audit as not perfect, polish once, then converge after a fresh audit.
+- Already structured ideas should audit as perfect and skip polishing.
 - Re-running finalize on a completed pipeline should not create extra LLM calls.
 - The mock provider should produce deterministic results.

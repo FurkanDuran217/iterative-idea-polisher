@@ -12,11 +12,12 @@ from sqlalchemy.orm import selectinload
 from videoedgeai_task.config import Settings
 from videoedgeai_task.llm import (
     AuditParseError,
+    AuditVerdict,
     LLMProvider,
     LLMProviderError,
     build_audit_request_payload,
     build_polish_request_payload,
-    parse_audit_json,
+    parse_audit_verdict,
 )
 from videoedgeai_task.models import Audit, LLMCall, PipelineRun, TextVersion
 from videoedgeai_task.utils import normalize_input_text, normalize_model_text, stable_hash
@@ -55,6 +56,9 @@ class PipelineMetrics:
     word_delta: int
     latest_needs_polish: bool | None
     air_gap_trace_ok: bool
+    latest_is_perfect: bool | None
+    latest_quality_score: int | None
+    latest_rationale: str | None
 
 
 class PipelineService:
@@ -120,7 +124,7 @@ class PipelineService:
             await self._session.commit()
             raise LLMProviderError("audit provider call failed") from exc
         try:
-            suggestions = parse_audit_json(first_response.content)
+            verdict = parse_audit_verdict(first_response.content)
         except AuditParseError as exc:
             await self._record_llm_call(
                 run_id=run.id,
@@ -168,7 +172,7 @@ class PipelineService:
                 await self._session.commit()
                 raise LLMProviderError("audit repair provider call failed") from retry_provider_exc
             try:
-                suggestions = parse_audit_json(retry_response.content)
+                verdict = parse_audit_verdict(retry_response.content)
             except AuditParseError as retry_exc:
                 await self._record_llm_call(
                     run_id=run.id,
@@ -204,7 +208,7 @@ class PipelineService:
                 provider_params=retry_response.provider_params,
                 model_name=retry_response.model_name,
                 raw_output=retry_response.content,
-                parsed_output={"suggestions": suggestions},
+                parsed_output=verdict.to_dict(),
                 latency_ms=retry_response.latency_ms,
                 success=True,
                 error=None,
@@ -222,7 +226,7 @@ class PipelineService:
                 provider_params=first_response.provider_params,
                 model_name=first_response.model_name,
                 raw_output=first_response.content,
-                parsed_output={"suggestions": suggestions},
+                parsed_output=verdict.to_dict(),
                 latency_ms=first_response.latency_ms,
                 success=True,
                 error=None,
@@ -231,9 +235,10 @@ class PipelineService:
         audit = Audit(
             run_id=run.id,
             iteration=iteration,
-            suggestions=suggestions,
-            needs_polish=bool(suggestions),
+            suggestions=verdict.suggestions,
+            needs_polish=verdict.needs_polish,
         )
+        audit.__dict__["verdict"] = verdict
         self._session.add(audit)
         await self._session.commit()
         await self._session.refresh(audit)
@@ -247,7 +252,7 @@ class PipelineService:
             run = await self._get_run(tracking_id)
 
         polish_iterations = 0
-        convergence_reason = "no_suggestions"
+        convergence_reason = "declared_perfect"
 
         while latest_audit.needs_polish:
             if polish_iterations >= self._settings.max_iterations:
@@ -345,7 +350,7 @@ class PipelineService:
             latest_audit = await self.audit(tracking_id)
             run = await self._get_run(tracking_id)
 
-        if convergence_reason == "no_suggestions":
+        if convergence_reason == "declared_perfect":
             run.status = "completed"
             await self._session.commit()
 
@@ -391,6 +396,7 @@ class PipelineService:
         original_word_count = len(run.original_text.split())
         current_word_count = len(run.current_text.split())
         prompt_types = [call.prompt_type for call in llm_calls]
+        latest_verdict = self._latest_audit_verdict(llm_calls)
         return PipelineMetrics(
             tracking_id=run.tracking_id,
             status=run.status,
@@ -406,6 +412,9 @@ class PipelineService:
             word_delta=current_word_count - original_word_count,
             latest_needs_polish=audits[-1].needs_polish if audits else None,
             air_gap_trace_ok=self._air_gap_trace_ok(prompt_types, llm_calls),
+            latest_is_perfect=latest_verdict.is_perfect if latest_verdict else None,
+            latest_quality_score=latest_verdict.quality_score if latest_verdict else None,
+            latest_rationale=latest_verdict.rationale if latest_verdict else None,
         )
 
     async def _get_run(self, tracking_id: str) -> PipelineRun:
@@ -510,3 +519,30 @@ class PipelineService:
             and all(call.prompt_version for call in llm_calls)
             and all(call.request_payload for call in llm_calls)
         )
+
+    def _latest_audit_verdict(self, llm_calls: list[LLMCall]) -> AuditVerdict | None:
+        for call in reversed(llm_calls):
+            if call.prompt_type != "audit" or not call.success:
+                continue
+            payload = call.parsed_output
+            if not isinstance(payload, dict):
+                continue
+            suggestions = payload.get("suggestions")
+            if not isinstance(suggestions, list):
+                continue
+            is_perfect = payload.get("is_perfect")
+            quality_score = payload.get("quality_score")
+            rationale = payload.get("rationale")
+            if (
+                isinstance(is_perfect, bool)
+                and isinstance(quality_score, int)
+                and isinstance(rationale, str)
+                and all(isinstance(suggestion, str) for suggestion in suggestions)
+            ):
+                return AuditVerdict(
+                    is_perfect=is_perfect,
+                    quality_score=quality_score,
+                    rationale=rationale,
+                    suggestions=suggestions,
+                )
+        return None

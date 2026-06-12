@@ -331,6 +331,27 @@ REVIEWER_CONSOLE_HTML = """
       gap: 8px;
     }
 
+    .verdict-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    .verdict-card b {
+      display: block;
+      font-size: 20px;
+      line-height: 1.1;
+    }
+
+    .verdict-card span {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
     .suggestion {
       border: 1px solid var(--line);
       border-left: 4px solid var(--amber);
@@ -534,6 +555,11 @@ REVIEWER_CONSOLE_HTML = """
               </div>
             </div>
             <div>
+              <h3>Fresh Audit Verdict</h3>
+              <div class="verdict-card" id="verdictCard" style="margin-top: 10px;">
+                <b id="verdictLabel">Not audited</b>
+                <span id="verdictRationale">Run audit or full pipeline to get a verdict.</span>
+              </div>
               <h3>Audit Suggestions</h3>
               <div class="suggestions" id="suggestionsList" style="margin-top: 10px;"></div>
             </div>
@@ -721,7 +747,10 @@ REVIEWER_CONSOLE_HTML = """
       const audits = loaded ? detail.audits : [];
       const calls = loaded ? detail.llm_calls : [];
       const latestAudit = audits.length ? audits[audits.length - 1] : null;
-      const suggestions = state.audit?.suggestions || latestAudit?.suggestions || [];
+      const verdict = currentVerdict(metrics, calls);
+      const suggestions = verdict?.suggestions?.length
+        ? verdict.suggestions
+        : latestAudit?.suggestions || [];
 
       $("runStatus").textContent = loaded ? detail.status : "idle";
       $("metricStatus").textContent = loaded ? detail.status : "-";
@@ -735,13 +764,36 @@ REVIEWER_CONSOLE_HTML = """
       $("tracePill").className = traceOk ? "pill ok" : "pill warn";
 
       const convergence = state.final?.convergence_reason || "not run";
-      $("convergencePill").textContent = convergence;
-      $("convergencePill").className = convergence === "no_suggestions" ? "pill ok" : "pill";
+      $("convergencePill").textContent = verdict?.is_perfect
+        ? "declared perfect"
+        : convergence;
+      $("convergencePill").className =
+        verdict?.is_perfect || convergence === "declared_perfect" ? "pill ok" : "pill";
 
       renderWorkflow(loaded, audits.length, detail?.status);
       renderOutput(detail);
+      renderVerdict(verdict);
       renderSuggestions(suggestions);
       renderTrace(calls);
+    }
+
+    function currentVerdict(metrics, calls) {
+      for (let index = calls.length - 1; index >= 0; index -= 1) {
+        const call = calls[index];
+        if (call.prompt_type !== "audit" || !call.success || !call.parsed_output) {
+          continue;
+        }
+        return call.parsed_output;
+      }
+      if (metrics.latest_is_perfect !== null && metrics.latest_is_perfect !== undefined) {
+        return {
+          is_perfect: metrics.latest_is_perfect,
+          quality_score: metrics.latest_quality_score,
+          rationale: metrics.latest_rationale,
+          suggestions: state.audit?.suggestions || [],
+        };
+      }
+      return null;
     }
 
     function renderWorkflow(loaded, auditCount, status) {
@@ -763,6 +815,21 @@ REVIEWER_CONSOLE_HTML = """
       }
       output.textContent = detail.current_text;
       output.className = "output";
+    }
+
+    function renderVerdict(verdict) {
+      const label = $("verdictLabel");
+      const rationale = $("verdictRationale");
+      if (!verdict) {
+        label.textContent = "Not audited";
+        rationale.textContent = "Run audit or full pipeline to get a verdict.";
+        return;
+      }
+      const score = verdict.quality_score ?? "-";
+      label.textContent = verdict.is_perfect
+        ? `Perfect - ${score}/100`
+        : `Needs polish - ${score}/100`;
+      rationale.textContent = verdict.rationale || "No rationale returned.";
     }
 
     function renderSuggestions(suggestions) {

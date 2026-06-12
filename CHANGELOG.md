@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.7.0 - Smart Verdict Pipeline
+
+- Upgraded audit prompts to return explicit `is_perfect`, `quality_score`, `rationale`, and
+  `suggestions` fields.
+- Updated finalize behavior to stop when a fresh audit call declares the text perfect.
+- Improved mock provider behavior with clearer audience/problem/value inference for offline demos.
+- Added latest audit verdict fields to the metrics endpoint and reviewer UI.
+- Reframed the UI around the actual air-gapped loop: fresh audit verdict, polish result, metrics,
+  and trace timeline.
+
 ## v0.6.2 - Reviewer Console Usability Pass
 
 - Reworked the reviewer console around a clearer three-step workflow.
