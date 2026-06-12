@@ -56,20 +56,22 @@ def variants() -> list[PromptVariant]:
         ),
         PromptVariant(
             prompt_type="audit",
-            name="audit.strict_json_v1",
-            summary="Requires only JSON with a `suggestions` array.",
+            name="audit.verdict_json_v2",
+            summary="Requires JSON with perfection verdict, score, rationale, and suggestions.",
             representative_output=(
-                '{"suggestions":["Add a clear target audience.",'
-                '"Add a concrete next step.","Add a measurable success criterion."]}'
+                '{"is_perfect":false,"quality_score":72,'
+                '"rationale":"The idea needs a clearer user and metric.",'
+                '"suggestions":["Add a clear target audience.",'
+                '"Add a measurable success criterion."]}'
             ),
             parse_reliability=5,
-            convergence_control=4,
+            convergence_control=5,
             faithfulness_control=4,
             reviewer_clarity=5,
             selected=True,
             decision=(
-                "Selected because it is easy to validate, retry, store, and compare across "
-                "air-gapped iterations."
+                "Selected because the model explicitly declares whether the text is perfect, "
+                "while still giving concrete edits when it is not."
             ),
         ),
         PromptVariant(
@@ -110,19 +112,20 @@ def variants() -> list[PromptVariant]:
         ),
         PromptVariant(
             prompt_type="polish",
-            name="polish.final_text_only_v1",
-            summary="Returns only the improved text after applying the audit suggestions.",
+            name="polish.idea_brief_v2",
+            summary="Returns only a structured idea brief after applying the audit verdict.",
             representative_output=(
-                "Problem: make notes better for founders\n\nAudience: Early-stage founders..."
+                "Problem: Founders collect notes but struggle to turn them into a clear next "
+                "action.\n\nAudience: Early-stage founders..."
             ),
             parse_reliability=5,
             convergence_control=5,
-            faithfulness_control=4,
+            faithfulness_control=5,
             reviewer_clarity=5,
             selected=True,
             decision=(
-                "Selected because the database should store the candidate text itself, not "
-                "the model's explanation of the edit."
+                "Selected because the next air-gapped audit should judge only the candidate "
+                "text, not the model's explanation of the edit."
             ),
         ),
         PromptVariant(
@@ -154,9 +157,9 @@ def run_evaluation() -> dict[str, object]:
         "score_scale": "1=weak, 5=strong",
         "selected_pair": [row.name for row in selected],
         "selection_rationale": (
-            "The selected pair optimizes for parse reliability, traceability, and low "
-            "contamination of stored text versions. Richer rubric prompts are documented "
-            "as future work because they create a larger evaluation surface."
+            "The selected pair optimizes for explicit perfection decisions, parse reliability, "
+            "traceability, and low contamination of stored text versions. Richer rubric prompts "
+            "are documented as future work because they create a larger evaluation surface."
         ),
         "variants": [
             {

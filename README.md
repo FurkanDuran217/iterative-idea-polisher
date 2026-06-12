@@ -1,7 +1,7 @@
 # VideoEdgeAI-Task
 
 An air-gapped FastAPI pipeline that takes a rough idea, audits it with a fresh LLM call,
-polishes it, and repeats until there are no suggestions left.
+polishes it, and repeats until a new audit declares the text ready.
 
 ## Why Air-Gap?
 
@@ -31,7 +31,7 @@ flowchart LR
 The implementation records every text version, audit, and LLM call. That history is available
 through `GET /api/v1/pipeline/{tracking_id}` so a reviewer can verify that each step is independent.
 For a compact summary, `GET /api/v1/pipeline/{tracking_id}/metrics` returns version counts, audit
-counts, LLM call success, word delta, and an air-gap trace flag.
+counts, LLM call success, word delta, the latest perfection verdict, and an air-gap trace flag.
 The detailed run endpoint also exposes each LLM call's prompt version, exact request payload,
 provider parameters, model name, input text version, and output text version when applicable.
 
@@ -135,11 +135,13 @@ Response:
 
 ### `POST /api/v1/pipeline/audit/{tracking_id}`
 
-Returns the current audit suggestions and `needs_polish`.
+Returns the current fresh-audit verdict: `is_perfect`, `quality_score`, `rationale`,
+`suggestions`, and `needs_polish`.
 
 ### `POST /api/v1/pipeline/finalize/{tracking_id}`
 
-Runs polish and fresh audit calls until the audit returns no suggestions or `MAX_ITERATIONS` is hit.
+Runs polish and fresh audit calls until a new audit returns `is_perfect=true` or
+`MAX_ITERATIONS` is hit.
 
 ### `GET /api/v1/pipeline/{tracking_id}`
 
@@ -147,7 +149,8 @@ Returns the run, text versions, audit records, and LLM call metadata.
 
 ### `GET /api/v1/pipeline/{tracking_id}/metrics`
 
-Returns compact traceability metrics for versions, audits, LLM calls, word delta, and air-gap proof.
+Returns compact traceability metrics for versions, audits, LLM calls, word delta, latest verdict,
+and air-gap proof.
 
 ## LLM Providers
 
@@ -180,10 +183,13 @@ First audit:
 
 ```json
 {
+  "is_perfect": false,
+  "quality_score": 50,
+  "rationale": "The idea is promising but not yet submission-ready.",
   "suggestions": [
-    "Restructure the idea with Problem, Audience, Value, Next step, and Success measure.",
-    "Add enough concrete context for a reviewer to understand the idea.",
-    "Add a measurable way to decide whether the idea improved."
+    "Rewrite the idea as a reviewer-ready brief with Problem, Audience, Value, Next step, and Success measure.",
+    "Add enough concrete context so a reviewer can understand the user, problem, benefit, and decision point.",
+    "Add a measurable criterion for deciding whether the idea is better."
   ],
   "needs_polish": true
 }
@@ -192,15 +198,13 @@ First audit:
 Final output after one polish iteration:
 
 ```text
-Polished idea
+Problem: Early-stage founders collect useful notes but struggle to turn them into a clear, reviewable next action.
 
-Problem: make a tool that helps busy founders turn messy product notes into clearer pitches
+Audience: Early-stage founders who turn rough notes into product decisions or pitches.
 
-Audience: The people or team who feel this problem directly and need a clearer way to act on the idea.
+Value: The service turns messy product notes into a clearer pitch or roadmap input.
 
-Value: The idea is easier to evaluate because it states the problem, the intended audience, the practical benefit, and the next decision point.
-
-Next step: Test the idea with one realistic user scenario, then revise the wording based on what felt unclear or unsupported.
+Next step: Test the brief with one realistic user who would say: make a tool that helps busy founders turn messy product notes into clearer pitches.
 
 Success measure: A reviewer can identify the user, problem, benefit, next step, and evaluation criterion without asking follow-up questions.
 ```

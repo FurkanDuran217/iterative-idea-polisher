@@ -28,6 +28,9 @@ class AuditResponse(BaseModel):
     tracking_id: str
     suggestions: list[str]
     needs_polish: bool
+    is_perfect: bool
+    quality_score: int
+    rationale: str
     iteration: int
 
 
@@ -105,6 +108,9 @@ class PipelineMetricsResponse(BaseModel):
     word_delta: int
     latest_needs_polish: bool | None
     air_gap_trace_ok: bool
+    latest_is_perfect: bool | None
+    latest_quality_score: int | None
+    latest_rationale: str | None
 
 
 class HealthResponse(BaseModel):

@@ -69,7 +69,8 @@ async def test_audit_retries_malformed_json_once(session, settings) -> None:
     assert detail.llm_calls[0].success is False
     assert detail.llm_calls[1].success is True
     assert detail.llm_calls[1].input_text_version_id == detail.versions[0].id
-    assert detail.llm_calls[1].request_payload["prompt_version"] == "audit.v1"
+    assert detail.llm_calls[1].request_payload["prompt_version"] == "audit.v2"
+    assert detail.llm_calls[1].parsed_output["is_perfect"] is True
 
 
 async def test_finalize_stops_at_max_iterations(session, settings) -> None:

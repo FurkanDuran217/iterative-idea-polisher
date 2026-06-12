@@ -14,7 +14,7 @@ Result: passed.
 
 | Check | Result |
 | --- | --- |
-| tests | 17 passed |
+| tests | 18 passed |
 | lint | passed |
 | typecheck | passed |
 | deterministic metrics | passed |
@@ -55,10 +55,10 @@ links that make the process inspectable.
 | Type | Variant | Selected | Score | Reason |
 | --- | --- | --- | ---: | --- |
 | audit | `audit.loose_v0` | no | 2.25 | Too hard to parse and retry safely. |
-| audit | `audit.strict_json_v1` | yes | 4.50 | Strict JSON makes validation and storage reliable. |
+| audit | `audit.verdict_json_v2` | yes | 4.75 | Strict JSON plus explicit perfection verdict. |
 | audit | `audit.rubric_json_v2` | no | 4.00 | Useful later, but increases scope and style-churn risk. |
 | polish | `polish.verbose_v0` | no | 2.50 | Explanations contaminate stored text versions. |
-| polish | `polish.final_text_only_v1` | yes | 4.75 | Stores only the candidate text for the next audit. |
+| polish | `polish.idea_brief_v2` | yes | 5.00 | Stores only the structured candidate text for the next audit. |
 | polish | `polish.creative_v2` | no | 3.50 | More novelty, but higher faithfulness risk. |
 
 ## Representative Output

@@ -515,7 +515,7 @@ def aggregate_metrics(
         "case_count": total,
         "success_rate": round(sum(case.success for case in cases) / total, 2),
         "converged_rate": round(
-            sum(case.convergence_reason == "no_suggestions" for case in cases) / total,
+            sum(case.convergence_reason == "declared_perfect" for case in cases) / total,
             2,
         ),
         "expected_polish_detection_rate": round(

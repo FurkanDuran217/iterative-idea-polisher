@@ -25,11 +25,14 @@ async def test_full_pipeline_records_history(client: httpx.AsyncClient) -> None:
     audit = await client.post(f"/api/v1/pipeline/audit/{tracking_id}")
     assert audit.status_code == 200
     assert audit.json()["needs_polish"] is True
+    assert audit.json()["is_perfect"] is False
+    assert audit.json()["quality_score"] < 90
+    assert audit.json()["rationale"]
 
     final = await client.post(f"/api/v1/pipeline/finalize/{tracking_id}")
     assert final.status_code == 200
     payload = final.json()
-    assert payload["convergence_reason"] == "no_suggestions"
+    assert payload["convergence_reason"] == "declared_perfect"
     assert payload["iteration_count"] == 1
     assert "Success measure:" in payload["final_text"]
 
@@ -51,6 +54,8 @@ async def test_full_pipeline_records_history(client: httpx.AsyncClient) -> None:
     assert metrics_payload["polish_iteration_count"] == 1
     assert metrics_payload["latest_needs_polish"] is False
     assert metrics_payload["air_gap_trace_ok"] is True
+    assert metrics_payload["latest_is_perfect"] is True
+    assert metrics_payload["latest_quality_score"] >= 90
 
 
 async def test_finalize_is_idempotent_after_completion(client: httpx.AsyncClient) -> None:
