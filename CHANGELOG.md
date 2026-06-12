@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.0 - VideoEdgeAI-Task Rename
+
+- Renamed the project, package, runtime entrypoints, database defaults, and docs to `VideoEdgeAI-Task`.
+- Renamed the Python package from `idea_polisher` to `videoedgeai_task`.
+- Preserved the same API behavior and quality gate after the rename.
+
 ## v0.2.0 - Excellence Pass
 
 - Added per-run metrics endpoint for reviewer/debug visibility.
@@ -15,4 +21,3 @@
 - Added mock and optional OpenAI LLM providers.
 - Added deterministic demo and multi-metric evaluation script.
 - Added Docker, compose, Makefile, README, tests, lint, and type-check setup.
-

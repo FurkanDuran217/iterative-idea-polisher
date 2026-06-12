@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "idea-polisher"
-version = "0.2.0"
-description = "Air-gapped iterative idea polishing pipeline built with FastAPI."
+name = "videoedgeai-task"
+version = "0.3.0"
+description = "VideoEdgeAI task: air-gapped iterative idea polishing pipeline built with FastAPI."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -27,7 +27,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/idea_polisher"]
+packages = ["src/videoedgeai_task"]
 
 [tool.ruff]
 line-length = 100

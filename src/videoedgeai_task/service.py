@@ -8,15 +8,15 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from idea_polisher.config import Settings
-from idea_polisher.llm import (
+from videoedgeai_task.config import Settings
+from videoedgeai_task.llm import (
     AuditParseError,
     LLMProvider,
     LLMProviderError,
     parse_audit_json,
 )
-from idea_polisher.models import Audit, LLMCall, PipelineRun, TextVersion
-from idea_polisher.utils import normalize_input_text, normalize_model_text, stable_hash
+from videoedgeai_task.models import Audit, LLMCall, PipelineRun, TextVersion
+from videoedgeai_task.utils import normalize_input_text, normalize_model_text, stable_hash
 
 
 class PipelineNotFoundError(LookupError):

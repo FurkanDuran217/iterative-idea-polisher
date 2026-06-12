@@ -5,9 +5,9 @@ from collections.abc import AsyncGenerator
 import httpx
 import pytest
 
-from idea_polisher.config import Settings
-from idea_polisher.db import configure_database, dispose_db, drop_db, init_db
-from idea_polisher.main import app
+from videoedgeai_task.config import Settings
+from videoedgeai_task.db import configure_database, dispose_db, drop_db, init_db
+from videoedgeai_task.main import app
 
 
 @pytest.fixture()

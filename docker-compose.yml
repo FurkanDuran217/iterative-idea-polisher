@@ -8,5 +8,4 @@ services:
     volumes:
       - ./data:/app/data
     environment:
-      DATABASE_URL: sqlite+aiosqlite:////app/data/idea_polisher.db
-
+      DATABASE_URL: sqlite+aiosqlite:////app/data/videoedgeai_task.db

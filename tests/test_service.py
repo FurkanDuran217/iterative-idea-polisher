@@ -5,9 +5,9 @@ from dataclasses import replace
 
 import pytest
 
-from idea_polisher.db import configure_database, dispose_db, drop_db, get_sessionmaker, init_db
-from idea_polisher.llm import MockLLMProvider, RawLLMResponse
-from idea_polisher.service import PipelineService
+from videoedgeai_task.db import configure_database, dispose_db, drop_db, get_sessionmaker, init_db
+from videoedgeai_task.llm import MockLLMProvider, RawLLMResponse
+from videoedgeai_task.service import PipelineService
 
 
 class MalformedOnceProvider(MockLLMProvider):
@@ -59,4 +59,3 @@ async def test_finalize_stops_at_max_iterations(session, settings) -> None:
     assert result.convergence_reason == "max_iterations_reached"
     assert result.iteration_count == 2
     assert result.version_count == 3
-

@@ -20,11 +20,11 @@ def _int_env(name: str, default: int) -> int:
 
 @dataclass(frozen=True)
 class Settings:
-    app_name: str = os.getenv("APP_NAME", "Iterative Idea Polisher")
+    app_name: str = os.getenv("APP_NAME", "VideoEdgeAI-Task")
     app_env: str = os.getenv("APP_ENV", "local")
     database_url: str = os.getenv(
         "DATABASE_URL",
-        "sqlite+aiosqlite:///./idea_polisher.db",
+        "sqlite+aiosqlite:///./videoedgeai_task.db",
     )
     llm_provider: str = os.getenv("LLM_PROVIDER", "mock")
     openai_api_key: str | None = os.getenv("OPENAI_API_KEY")
@@ -36,4 +36,3 @@ class Settings:
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     return Settings()
-

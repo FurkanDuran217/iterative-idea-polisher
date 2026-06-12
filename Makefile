@@ -4,7 +4,7 @@ install:
 	python -m pip install -e ".[dev]"
 
 dev:
-	uvicorn idea_polisher.main:app --reload
+	uvicorn videoedgeai_task.main:app --reload
 
 test:
 	pytest
@@ -16,7 +16,7 @@ typecheck:
 	mypy src
 
 run:
-	uvicorn idea_polisher.main:app --host 0.0.0.0 --port 8000
+	uvicorn videoedgeai_task.main:app --host 0.0.0.0 --port 8000
 
 demo:
 	python scripts/demo.py

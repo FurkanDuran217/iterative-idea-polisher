@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from idea_polisher.utils import normalize_input_text
+from videoedgeai_task.utils import normalize_input_text
 
 
 class StartPipelineRequest(BaseModel):

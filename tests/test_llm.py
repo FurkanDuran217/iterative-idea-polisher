@@ -2,8 +2,13 @@ from __future__ import annotations
 
 import pytest
 
-from idea_polisher.config import Settings
-from idea_polisher.llm import AuditParseError, MockLLMProvider, get_llm_provider, parse_audit_json
+from videoedgeai_task.config import Settings
+from videoedgeai_task.llm import (
+    AuditParseError,
+    MockLLMProvider,
+    get_llm_provider,
+    parse_audit_json,
+)
 
 
 def test_parse_audit_json_accepts_suggestions() -> None:
@@ -30,4 +35,3 @@ def test_parse_audit_json_rejects_malformed_output(raw: str) -> None:
 def test_provider_selection_defaults_to_mock(settings: Settings) -> None:
     provider = get_llm_provider(settings)
     assert isinstance(provider, MockLLMProvider)
-

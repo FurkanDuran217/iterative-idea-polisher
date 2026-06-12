@@ -11,7 +11,7 @@ This project is designed so an evaluator can inspect both product reasoning and 
 | Finalize loop | `POST /api/v1/pipeline/finalize/{tracking_id}` |
 | Air-gapped LLM calls | `PipelineService` passes only current text/suggestions to the provider |
 | DB persistence | `pipeline_runs`, `text_versions`, `audits`, `llm_calls` |
-| Prompts | `src/idea_polisher/llm.py` |
+| Prompts | `src/videoedgeai_task/llm.py` |
 | Full run example | `python scripts/demo.py` |
 | Metrics and convergence | `python scripts/evaluate_metrics.py` |
 | Tests | `pytest` |
@@ -29,4 +29,3 @@ This project is designed so an evaluator can inspect both product reasoning and 
 - Already structured ideas should audit cleanly and skip polishing.
 - Re-running finalize on a completed pipeline should not create extra LLM calls.
 - The mock provider should produce deterministic results.
-

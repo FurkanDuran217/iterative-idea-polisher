@@ -1,4 +1,4 @@
-# Iterative Idea Polisher
+# VideoEdgeAI-Task
 
 An air-gapped FastAPI pipeline that takes a rough idea, audits it with a fresh LLM call,
 polishes it, and repeats until there are no suggestions left.
@@ -39,7 +39,7 @@ counts, LLM call success, word delta, and an air-gap trace flag.
 python -m venv .venv
 .venv\Scripts\activate
 python -m pip install -e ".[dev]"
-uvicorn idea_polisher.main:app --reload
+uvicorn videoedgeai_task.main:app --reload
 ```
 
 Then run:
