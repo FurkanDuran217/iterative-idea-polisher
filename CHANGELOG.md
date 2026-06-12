@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.6.1 - Windows Reviewer Console Launch Fix
+
+- Added `scripts/run_reviewer_console.ps1` and `scripts/run_reviewer_console.cmd`.
+- Documented the safer Windows launch path so the UI starts from the repo root with the correct
+  `src/` package path.
+
 ## v0.6.0 - Reviewer Console UI
 
 - Added a no-dependency reviewer console at `/` for start, audit, finalize, refresh, and trace

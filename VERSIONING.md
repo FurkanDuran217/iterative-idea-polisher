@@ -8,6 +8,7 @@ This project uses semantic versioning.
 - `v0.4.0`: traceability and failure-hardening pass for LLM calls.
 - `v0.5.0`: baseline evaluation and prompt-variant experiment pass.
 - `v0.6.0`: reviewer console UI pass.
+- `v0.6.1`: Windows reviewer-console launch helper pass.
 
 Suggested release workflow:
 
