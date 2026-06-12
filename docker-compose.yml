@@ -1,0 +1,12 @@
+services:
+  api:
+    build: .
+    env_file:
+      - .env.example
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:////app/data/idea_polisher.db
+
