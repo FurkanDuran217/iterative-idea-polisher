@@ -9,8 +9,8 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from idea_polisher.config import get_settings
-from idea_polisher.models import Base
+from videoedgeai_task.config import get_settings
+from videoedgeai_task.models import Base
 
 _engine: AsyncEngine | None = None
 _sessionmaker: async_sessionmaker[AsyncSession] | None = None
@@ -60,4 +60,3 @@ async def dispose_db() -> None:
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with get_sessionmaker()() as session:
         yield session
-

@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass
 from typing import Protocol
 
-from idea_polisher.config import Settings
+from videoedgeai_task.config import Settings
 
 AUDIT_SYSTEM_PROMPT = (
     "You are a precise editor in an air-gapped pipeline. "

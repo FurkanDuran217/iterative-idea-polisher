@@ -11,8 +11,8 @@ from typing import Any
 
 import httpx
 
-from idea_polisher.db import configure_database, dispose_db, drop_db
-from idea_polisher.main import app
+from videoedgeai_task.db import configure_database, dispose_db, drop_db
+from videoedgeai_task.main import app
 
 REQUIRED_LABELS = ("Problem:", "Audience:", "Value:", "Next step:", "Success measure:")
 STOP_WORDS = {

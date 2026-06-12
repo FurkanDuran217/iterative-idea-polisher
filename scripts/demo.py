@@ -5,7 +5,7 @@ import json
 
 import httpx
 
-from idea_polisher.main import app
+from videoedgeai_task.main import app
 
 
 async def main() -> None:
@@ -48,4 +48,3 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
-

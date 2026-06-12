@@ -5,10 +5,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from idea_polisher.config import Settings, get_settings
-from idea_polisher.db import get_session
-from idea_polisher.llm import LLMProviderError, get_llm_provider
-from idea_polisher.schemas import (
+from videoedgeai_task.config import Settings, get_settings
+from videoedgeai_task.db import get_session
+from videoedgeai_task.llm import LLMProviderError, get_llm_provider
+from videoedgeai_task.schemas import (
     AuditRead,
     AuditResponse,
     FinalizeResponse,
@@ -20,7 +20,7 @@ from idea_polisher.schemas import (
     StartPipelineResponse,
     TextVersionRead,
 )
-from idea_polisher.service import PipelineInputError, PipelineNotFoundError, PipelineService
+from videoedgeai_task.service import PipelineInputError, PipelineNotFoundError, PipelineService
 
 router = APIRouter(prefix="/api/v1", tags=["pipeline"])
 

@@ -5,11 +5,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from idea_polisher import __version__
-from idea_polisher.api import router
-from idea_polisher.config import get_settings
-from idea_polisher.db import init_db
-from idea_polisher.schemas import HealthResponse
+from videoedgeai_task import __version__
+from videoedgeai_task.api import router
+from videoedgeai_task.config import get_settings
+from videoedgeai_task.db import init_db
+from videoedgeai_task.schemas import HealthResponse
 
 
 @asynccontextmanager
