@@ -5,6 +5,7 @@ This project uses semantic versioning.
 - `v0.1.0`: baseline implementation that satisfies the exercise and passes tests/metrics.
 - `v0.2.0`: excellence pass with CI, reviewer-facing metrics, and stronger documentation.
 - `v0.3.0`: rename pass for the final `VideoEdgeAI-Task` project identity.
+- `v0.4.0`: traceability and failure-hardening pass for LLM calls.
 
 Suggested release workflow:
 

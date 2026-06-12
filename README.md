@@ -32,6 +32,8 @@ The implementation records every text version, audit, and LLM call. That history
 through `GET /api/v1/pipeline/{tracking_id}` so a reviewer can verify that each step is independent.
 For a compact summary, `GET /api/v1/pipeline/{tracking_id}/metrics` returns version counts, audit
 counts, LLM call success, word delta, and an air-gap trace flag.
+The detailed run endpoint also exposes each LLM call's prompt version, exact request payload,
+provider parameters, model name, input text version, and output text version when applicable.
 
 ## Quick Start
 

@@ -15,11 +15,19 @@ The OpenAI provider is optional and isolated behind the same interface.
 
 Every LLM call stores provider, prompt type, request hash, raw output, parsed output, latency, and
 success/error status. This makes the air-gap behavior inspectable instead of merely asserted.
+From `v0.4.0`, each call also stores the exact request payload, prompt version, model name,
+provider params, input text version id, and output text version id when a polish call creates one.
 
 ## 4. Guard The Loop
 
 `MAX_ITERATIONS` prevents runaway refinement. The finalize endpoint records whether the loop stopped
 because the audit returned no suggestions or because the iteration cap was reached.
+
+## 6. Failure Traces Are First-Class
+
+Provider exceptions and empty polish outputs are persisted as failed `llm_calls` before the API
+returns a gateway error. That gives reviewers and operators a concrete trace for debugging instead
+of a raw stack trace or missing history.
 
 ## 5. Keep The API Small
 
