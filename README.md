@@ -50,6 +50,18 @@ Open the reviewer console:
 http://127.0.0.1:8000/
 ```
 
+On Windows, the safest way to start the console from any terminal directory is:
+
+```powershell
+.\scripts\run_reviewer_console.ps1
+```
+
+If PowerShell execution policy blocks scripts, use:
+
+```bat
+scripts\run_reviewer_console.cmd
+```
+
 Then run:
 
 ```bash

@@ -24,8 +24,8 @@ This project is designed so an evaluator can inspect both product reasoning and 
 
 - Run `python scripts/quality_gate.py` to execute tests, lint, type checks, deterministic metrics,
   and prompt-variant evaluation.
-- Start `uvicorn videoedgeai_task.main:app --reload` and open `http://127.0.0.1:8000/` for the
-  browser reviewer console.
+- Start `scripts\run_reviewer_console.cmd` on Windows, then open `http://127.0.0.1:8000/` for
+  the browser reviewer console.
 - Inspect `GET /api/v1/pipeline/{tracking_id}` to see versions, audits, and LLM call records.
 - Inspect `GET /api/v1/pipeline/{tracking_id}/metrics` to see compact traceability metrics.
 - Inspect each `llm_calls` item for prompt version, exact request payload, provider params, model,
