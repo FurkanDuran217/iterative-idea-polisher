@@ -30,6 +30,35 @@ async def test_full_pipeline_records_history(client: httpx.AsyncClient) -> None:
     assert len(detail_payload["llm_calls"]) == 3
     assert {call["prompt_type"] for call in detail_payload["llm_calls"]} == {"audit", "polish"}
 
+    metrics = await client.get(f"/api/v1/pipeline/{tracking_id}/metrics")
+    assert metrics.status_code == 200
+    metrics_payload = metrics.json()
+    assert metrics_payload["version_count"] == 2
+    assert metrics_payload["audit_count"] == 2
+    assert metrics_payload["llm_call_count"] == 3
+    assert metrics_payload["successful_llm_call_count"] == 3
+    assert metrics_payload["polish_iteration_count"] == 1
+    assert metrics_payload["latest_needs_polish"] is False
+    assert metrics_payload["air_gap_trace_ok"] is True
+
+
+async def test_finalize_is_idempotent_after_completion(client: httpx.AsyncClient) -> None:
+    start = await client.post(
+        "/api/v1/pipeline/start",
+        json={"text": "make notes better for founders"},
+    )
+    tracking_id = start.json()["tracking_id"]
+
+    first = await client.post(f"/api/v1/pipeline/finalize/{tracking_id}")
+    second = await client.post(f"/api/v1/pipeline/finalize/{tracking_id}")
+    metrics = await client.get(f"/api/v1/pipeline/{tracking_id}/metrics")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json()["final_text"] == second.json()["final_text"]
+    assert second.json()["iteration_count"] == 0
+    assert metrics.json()["llm_call_count"] == 3
+
 
 async def test_unknown_tracking_id_returns_404(client: httpx.AsyncClient) -> None:
     response = await client.post("/api/v1/pipeline/audit/missing")
@@ -39,4 +68,3 @@ async def test_unknown_tracking_id_returns_404(client: httpx.AsyncClient) -> Non
 async def test_blank_text_returns_422(client: httpx.AsyncClient) -> None:
     response = await client.post("/api/v1/pipeline/start", json={"text": "   \n\t   "})
     assert response.status_code == 422
-

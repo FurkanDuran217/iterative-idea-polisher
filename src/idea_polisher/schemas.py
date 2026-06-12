@@ -85,8 +85,22 @@ class PipelineRunRead(BaseModel):
     llm_calls: list[LLMCallRead]
 
 
+class PipelineMetricsResponse(BaseModel):
+    tracking_id: str
+    status: str
+    version_count: int
+    audit_count: int
+    llm_call_count: int
+    successful_llm_call_count: int
+    polish_iteration_count: int
+    original_word_count: int
+    current_word_count: int
+    word_delta: int
+    latest_needs_polish: bool | None
+    air_gap_trace_ok: bool
+
+
 class HealthResponse(BaseModel):
     status: str
     provider: str
     max_iterations: int
-

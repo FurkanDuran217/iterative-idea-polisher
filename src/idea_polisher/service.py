@@ -38,6 +38,22 @@ class FinalizeResult:
     audit_count: int
 
 
+@dataclass(frozen=True)
+class PipelineMetrics:
+    tracking_id: str
+    status: str
+    version_count: int
+    audit_count: int
+    llm_call_count: int
+    successful_llm_call_count: int
+    polish_iteration_count: int
+    original_word_count: int
+    current_word_count: int
+    word_delta: int
+    latest_needs_polish: bool | None
+    air_gap_trace_ok: bool
+
+
 class PipelineService:
     def __init__(self, session: AsyncSession, provider: LLMProvider, settings: Settings) -> None:
         self._session = session
@@ -244,6 +260,31 @@ class PipelineService:
             raise PipelineNotFoundError(f"pipeline {tracking_id} was not found")
         return run
 
+    async def get_metrics(self, tracking_id: str) -> PipelineMetrics:
+        run = await self.get_detail(tracking_id)
+        llm_calls = list(run.llm_calls)
+        versions = list(run.versions)
+        audits = list(run.audits)
+        original_word_count = len(run.original_text.split())
+        current_word_count = len(run.current_text.split())
+        prompt_types = [call.prompt_type for call in llm_calls]
+        return PipelineMetrics(
+            tracking_id=run.tracking_id,
+            status=run.status,
+            version_count=len(versions),
+            audit_count=len(audits),
+            llm_call_count=len(llm_calls),
+            successful_llm_call_count=sum(1 for call in llm_calls if call.success),
+            polish_iteration_count=sum(
+                1 for version in versions if version.source_step == "polish"
+            ),
+            original_word_count=original_word_count,
+            current_word_count=current_word_count,
+            word_delta=current_word_count - original_word_count,
+            latest_needs_polish=audits[-1].needs_polish if audits else None,
+            air_gap_trace_ok=self._air_gap_trace_ok(prompt_types, llm_calls),
+        )
+
     async def _get_run(self, tracking_id: str) -> PipelineRun:
         result = await self._session.execute(
             select(PipelineRun).where(PipelineRun.tracking_id == tracking_id)
@@ -318,4 +359,13 @@ class PipelineService:
             f"Convergence reason: {convergence_reason}. "
             f"The text moved from {original_words} to {final_words} words while preserving the "
             "original idea and making the evaluation criteria explicit."
+        )
+
+    def _air_gap_trace_ok(self, prompt_types: list[str], llm_calls: list[LLMCall]) -> bool:
+        if not llm_calls:
+            return False
+        return (
+            prompt_types[0] == "audit"
+            and all(prompt_type in {"audit", "polish"} for prompt_type in prompt_types)
+            and all(bool(call.request_hash) for call in llm_calls)
         )
