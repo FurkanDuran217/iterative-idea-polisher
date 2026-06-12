@@ -14,7 +14,7 @@ Result: passed.
 
 | Check | Result |
 | --- | --- |
-| tests | 16 passed |
+| tests | 17 passed |
 | lint | passed |
 | typecheck | passed |
 | deterministic metrics | passed |

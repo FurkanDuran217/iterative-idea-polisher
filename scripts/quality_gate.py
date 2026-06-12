@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import time
@@ -18,7 +19,10 @@ class CheckResult:
 
 def run_check(name: str, command: list[str]) -> CheckResult:
     start = time.perf_counter()
-    completed = subprocess.run(command, check=False)
+    env = os.environ.copy()
+    src_path = str(Path(__file__).resolve().parents[1] / "src")
+    env["PYTHONPATH"] = src_path + os.pathsep + env.get("PYTHONPATH", "")
+    completed = subprocess.run(command, check=False, env=env)
     elapsed_ms = round((time.perf_counter() - start) * 1000)
     return CheckResult(
         name=name,

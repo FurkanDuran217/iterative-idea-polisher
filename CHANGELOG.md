@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.6.0 - Reviewer Console UI
+
+- Added a no-dependency reviewer console at `/` for start, audit, finalize, refresh, and trace
+  inspection.
+- Added UI coverage in the API test suite.
+- Documented the browser-based review path in README and reviewer guide.
+
 ## v0.5.0 - Baseline Evaluation and Prompt Experiments
 
 - Expanded the deterministic evaluation report with metric definitions, limitations, baseline

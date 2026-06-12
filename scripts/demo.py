@@ -2,10 +2,15 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sys
+from pathlib import Path
 
 import httpx
 
-from videoedgeai_task.main import app
+WORKSPACE = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(WORKSPACE / "src"))
+
+from videoedgeai_task.main import app  # noqa: E402
 
 
 async def main() -> None:
