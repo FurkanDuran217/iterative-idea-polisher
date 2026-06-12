@@ -194,6 +194,65 @@ REVIEWER_CONSOLE_HTML = """
       box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
     }
 
+    .provider-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      padding: 12px;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .segmented label {
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .segmented input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .segmented span {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #ffffff;
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .segmented input:checked + span {
+      background: var(--teal);
+      border-color: var(--teal);
+      color: #ffffff;
+    }
+
+    .provider-meta {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 9px;
+    }
+
+    .provider-options {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .provider-options.hidden {
+      display: none;
+    }
+
     .field + .field,
     .field + .button-stack,
     .button-stack + .field {
@@ -404,7 +463,7 @@ REVIEWER_CONSOLE_HTML = """
 
     .trace-top {
       display: grid;
-      grid-template-columns: 82px 110px 1fr 80px;
+      grid-template-columns: 82px 88px 110px 1fr 80px;
       gap: 10px;
       align-items: center;
       font-size: 13px;
@@ -520,6 +579,31 @@ REVIEWER_CONSOLE_HTML = """
           <textarea id="ideaText">make notes better for founders</textarea>
         </div>
 
+        <div class="field provider-card">
+          <label>LLM Provider</label>
+          <div class="segmented" role="radiogroup" aria-label="LLM provider">
+            <label>
+              <input type="radio" name="providerChoice" value="mock" checked>
+              <span>Mock</span>
+            </label>
+            <label>
+              <input type="radio" name="providerChoice" value="openai">
+              <span>OpenAI</span>
+            </label>
+          </div>
+          <div class="provider-meta" id="providerMeta">Deterministic local provider</div>
+          <div class="provider-options hidden" id="openaiOptions">
+            <div class="field">
+              <label for="openaiApiKey">OpenAI API Key</label>
+              <input id="openaiApiKey" type="password" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="field">
+              <label for="openaiModel">Model</label>
+              <input id="openaiModel" autocomplete="off" spellcheck="false" value="gpt-4.1-mini">
+            </div>
+          </div>
+        </div>
+
         <div class="button-stack">
           <button class="primary" id="runFullBtn" type="button">Run Full Pipeline</button>
           <div class="button-row">
@@ -595,7 +679,7 @@ REVIEWER_CONSOLE_HTML = """
 
       <div class="footer-row">
         <span id="lastAction">No run loaded.</span>
-        <span>Mock provider by default</span>
+        <span id="providerFooter">Provider: mock</span>
       </div>
     </div>
   </main>
@@ -624,6 +708,8 @@ REVIEWER_CONSOLE_HTML = """
         "finalizeBtn",
         "refreshBtn",
         "resetBtn",
+        "openaiApiKey",
+        "openaiModel",
       ].forEach((id) => {
         $(id).disabled = isBusy;
       });
@@ -647,6 +733,38 @@ REVIEWER_CONSOLE_HTML = """
       return $("trackingId").value.trim();
     }
 
+    function selectedProvider() {
+      const selected = document.querySelector('input[name="providerChoice"]:checked');
+      return selected ? selected.value : "mock";
+    }
+
+    function providerPayload() {
+      const provider = selectedProvider();
+      if (provider === "mock") {
+        return { provider: "mock" };
+      }
+
+      const key = $("openaiApiKey").value.trim();
+      if (!key) {
+        throw new Error("OpenAI API key required.");
+      }
+      return {
+        provider: "openai",
+        openai_api_key: key,
+        openai_model: $("openaiModel").value.trim() || "gpt-4.1-mini",
+      };
+    }
+
+    function updateProviderUi() {
+      const provider = selectedProvider();
+      const isOpenAI = provider === "openai";
+      $("openaiOptions").className = isOpenAI ? "provider-options" : "provider-options hidden";
+      $("providerMeta").textContent = isOpenAI
+        ? "Real API calls for audit and polish"
+        : "Deterministic local provider";
+      $("providerFooter").textContent = "Provider: " + provider;
+    }
+
     async function startRun() {
       const text = $("ideaText").value;
       const payload = await requestJson("POST", "/api/v1/pipeline/start", { text });
@@ -667,7 +785,7 @@ REVIEWER_CONSOLE_HTML = """
     async function auditRun() {
       await withBusy(async () => {
         const id = requireTrackingId();
-        state.audit = await requestJson("POST", `/api/v1/pipeline/audit/${id}`);
+        state.audit = await requestJson("POST", `/api/v1/pipeline/audit/${id}`, providerPayload());
         await loadRun();
         setNotice("Audit complete.");
       });
@@ -676,7 +794,11 @@ REVIEWER_CONSOLE_HTML = """
     async function finalizeRun() {
       await withBusy(async () => {
         const id = requireTrackingId();
-        state.final = await requestJson("POST", `/api/v1/pipeline/finalize/${id}`);
+        state.final = await requestJson(
+          "POST",
+          `/api/v1/pipeline/finalize/${id}`,
+          providerPayload(),
+        );
         await loadRun();
         setNotice("Finalize complete.");
       });
@@ -684,8 +806,13 @@ REVIEWER_CONSOLE_HTML = """
 
     async function runFullPipeline() {
       await withBusy(async () => {
+        const actionPayload = providerPayload();
         const id = await startRun();
-        state.final = await requestJson("POST", `/api/v1/pipeline/finalize/${id}`);
+        state.final = await requestJson(
+          "POST",
+          `/api/v1/pipeline/finalize/${id}`,
+          actionPayload,
+        );
         await loadRun();
         setNotice("Pipeline complete.");
       });
@@ -855,6 +982,7 @@ REVIEWER_CONSOLE_HTML = """
         <div class="trace-item">
           <div class="trace-top">
             <div class="trace-type">${escapeHtml(call.prompt_type)}</div>
+            <div>${escapeHtml(call.provider)}</div>
             <div>${escapeHtml(call.prompt_version)}</div>
             <div class="trace-hash">${escapeHtml(call.request_hash)}</div>
             <div>${call.success ? "success" : "failed"}</div>
@@ -891,6 +1019,9 @@ REVIEWER_CONSOLE_HTML = """
     $("finalizeBtn").addEventListener("click", finalizeRun);
     $("refreshBtn").addEventListener("click", refreshRun);
     $("resetBtn").addEventListener("click", resetUi);
+    document.querySelectorAll('input[name="providerChoice"]').forEach((input) => {
+      input.addEventListener("change", updateProviderUi);
+    });
 
     requestJson("GET", "/health")
       .then((payload) => {
@@ -902,6 +1033,7 @@ REVIEWER_CONSOLE_HTML = """
         $("healthPill").className = "pill warn";
       });
 
+    updateProviderUi();
     render();
   </script>
 </body>

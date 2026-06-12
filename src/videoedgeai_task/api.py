@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from videoedgeai_task.config import Settings, get_settings
@@ -14,6 +15,7 @@ from videoedgeai_task.schemas import (
     FinalizeResponse,
     HealthResponse,
     LLMCallRead,
+    PipelineActionRequest,
     PipelineMetricsResponse,
     PipelineRunRead,
     StartPipelineRequest,
@@ -32,6 +34,35 @@ def get_service(
     return PipelineService(session=session, provider=get_llm_provider(settings), settings=settings)
 
 
+def build_action_service(
+    session: AsyncSession,
+    settings: Settings,
+    payload: PipelineActionRequest | None,
+) -> PipelineService:
+    action = payload or PipelineActionRequest()
+    if action.provider == "mock":
+        action_settings = replace(settings, llm_provider="mock")
+    else:
+        api_key = action.openai_api_key or settings.openai_api_key
+        if not api_key:
+            raise HTTPException(
+                status_code=422,
+                detail="openai_api_key is required when provider is openai",
+            )
+        action_settings = replace(
+            settings,
+            llm_provider="openai",
+            openai_api_key=api_key,
+            openai_model=action.openai_model or settings.openai_model,
+        )
+
+    try:
+        provider = get_llm_provider(action_settings)
+    except LLMProviderError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    return PipelineService(session=session, provider=provider, settings=action_settings)
+
+
 @router.post(
     "/pipeline/start",
     response_model=StartPipelineResponse,
@@ -45,7 +76,7 @@ async def start_pipeline(
         run = await service.start(payload.text)
     except PipelineInputError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail=str(exc),
         ) from exc
     return StartPipelineResponse(tracking_id=run.tracking_id)
@@ -54,8 +85,11 @@ async def start_pipeline(
 @router.post("/pipeline/audit/{tracking_id}", response_model=AuditResponse)
 async def audit_pipeline(
     tracking_id: str,
-    service: Annotated[PipelineService, Depends(get_service)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    payload: Annotated[PipelineActionRequest | None, Body()] = None,
 ) -> AuditResponse:
+    service = build_action_service(session=session, settings=settings, payload=payload)
     try:
         audit = await service.audit(tracking_id)
     except PipelineNotFoundError as exc:
@@ -90,8 +124,11 @@ async def audit_pipeline(
 @router.post("/pipeline/finalize/{tracking_id}", response_model=FinalizeResponse)
 async def finalize_pipeline(
     tracking_id: str,
-    service: Annotated[PipelineService, Depends(get_service)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    payload: Annotated[PipelineActionRequest | None, Body()] = None,
 ) -> FinalizeResponse:
+    service = build_action_service(session=session, settings=settings, payload=payload)
     try:
         result = await service.finalize(tracking_id)
     except PipelineNotFoundError as exc:

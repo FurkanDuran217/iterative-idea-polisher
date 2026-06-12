@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.8.0 - Provider Selection UI
+
+- Added request-level provider overrides for audit and finalize endpoints.
+- Added reviewer-console controls for deterministic mock mode and per-request OpenAI mode.
+- Kept OpenAI API keys out of persisted request payloads and trace records.
+- Added API tests for provider override behavior and missing OpenAI key validation.
+
 ## v0.7.0 - Smart Verdict Pipeline
 
 - Upgraded audit prompts to return explicit `is_perfect`, `quality_score`, `rationale`, and

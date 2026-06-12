@@ -12,6 +12,8 @@ async def test_reviewer_console_loads(client: httpx.AsyncClient) -> None:
     assert "Current / Final Text" in response.text
     assert "/api/v1/pipeline/start" in response.text
     assert "finalizeBtn" in response.text
+    assert "providerChoice" in response.text
+    assert "openaiApiKey" in response.text
 
 
 async def test_full_pipeline_records_history(client: httpx.AsyncClient) -> None:
@@ -56,6 +58,43 @@ async def test_full_pipeline_records_history(client: httpx.AsyncClient) -> None:
     assert metrics_payload["air_gap_trace_ok"] is True
     assert metrics_payload["latest_is_perfect"] is True
     assert metrics_payload["latest_quality_score"] >= 90
+
+
+async def test_action_endpoints_accept_mock_provider_body(client: httpx.AsyncClient) -> None:
+    start = await client.post(
+        "/api/v1/pipeline/start",
+        json={"text": "make notes better for founders"},
+    )
+    tracking_id = start.json()["tracking_id"]
+
+    audit = await client.post(
+        f"/api/v1/pipeline/audit/{tracking_id}",
+        json={"provider": "mock"},
+    )
+    final = await client.post(
+        f"/api/v1/pipeline/finalize/{tracking_id}",
+        json={"provider": "mock"},
+    )
+
+    assert audit.status_code == 200
+    assert final.status_code == 200
+    assert final.json()["convergence_reason"] == "declared_perfect"
+
+
+async def test_openai_provider_body_requires_key(client: httpx.AsyncClient) -> None:
+    start = await client.post(
+        "/api/v1/pipeline/start",
+        json={"text": "make notes better for founders"},
+    )
+    tracking_id = start.json()["tracking_id"]
+
+    response = await client.post(
+        f"/api/v1/pipeline/audit/{tracking_id}",
+        json={"provider": "openai"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "openai_api_key is required when provider is openai"
 
 
 async def test_finalize_is_idempotent_after_completion(client: httpx.AsyncClient) -> None:

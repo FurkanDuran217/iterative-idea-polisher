@@ -50,6 +50,10 @@ Open the reviewer console:
 http://127.0.0.1:8000/
 ```
 
+The console runs with the deterministic mock provider by default. Reviewers can also switch the
+same Audit/Finalize/Full Pipeline buttons to OpenAI mode from the UI by entering an API key and
+model. The key is used only for that request and is not written to the database or trace log.
+
 On Windows, the safest way to start the console from any terminal directory is:
 
 ```powershell
@@ -138,10 +142,22 @@ Response:
 Returns the current fresh-audit verdict: `is_perfect`, `quality_score`, `rationale`,
 `suggestions`, and `needs_polish`.
 
+Optional per-request provider override:
+
+```json
+{"provider": "mock"}
+```
+
+```json
+{"provider": "openai", "openai_api_key": "sk-...", "openai_model": "gpt-4.1-mini"}
+```
+
 ### `POST /api/v1/pipeline/finalize/{tracking_id}`
 
 Runs polish and fresh audit calls until a new audit returns `is_perfect=true` or
 `MAX_ITERATIONS` is hit.
+
+Accepts the same optional provider override body as `audit`.
 
 ### `GET /api/v1/pipeline/{tracking_id}`
 
