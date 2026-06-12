@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -22,6 +22,20 @@ class StartPipelineRequest(BaseModel):
 
 class StartPipelineResponse(BaseModel):
     tracking_id: str
+
+
+class PipelineActionRequest(BaseModel):
+    provider: Literal["mock", "openai"] = "mock"
+    openai_api_key: str | None = Field(default=None, repr=False)
+    openai_model: str | None = None
+
+    @field_validator("openai_api_key", "openai_model")
+    @classmethod
+    def blank_string_to_none(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
 
 
 class AuditResponse(BaseModel):
