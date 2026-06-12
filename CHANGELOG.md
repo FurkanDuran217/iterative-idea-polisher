@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.6.2 - Reviewer Console Usability Pass
+
+- Reworked the reviewer console around a clearer three-step workflow.
+- Moved the polished text and audit suggestions into the primary view.
+- Added a one-click full pipeline action and cleaner metrics/trace presentation.
+- Removed confusing raw-state-first layout and mojibake separator characters.
+
 ## v0.6.1 - Windows Reviewer Console Launch Fix
 
 - Added `scripts/run_reviewer_console.ps1` and `scripts/run_reviewer_console.cmd`.

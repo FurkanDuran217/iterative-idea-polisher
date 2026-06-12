@@ -9,6 +9,7 @@ This project uses semantic versioning.
 - `v0.5.0`: baseline evaluation and prompt-variant experiment pass.
 - `v0.6.0`: reviewer console UI pass.
 - `v0.6.1`: Windows reviewer-console launch helper pass.
+- `v0.6.2`: reviewer console usability pass.
 
 Suggested release workflow:
 
