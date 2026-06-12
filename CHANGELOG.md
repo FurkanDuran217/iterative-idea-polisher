@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.4.0 - Traceability and Failure Hardening
+
+- Added exact LLM request payload, prompt version, model name, provider params, and text-version links to `llm_calls`.
+- Records failed audit/polish provider exceptions and empty polish outputs instead of losing the trace.
+- Hardened audit JSON parsing for fenced JSON, duplicate suggestions, and oversized suggestion lists.
+- Expanded tests for parser edge cases, failed polish calls, and trace metadata.
+
 ## v0.3.0 - VideoEdgeAI-Task Rename
 
 - Renamed the project, package, runtime entrypoints, database defaults, and docs to `VideoEdgeAI-Task`.

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import time
 from dataclasses import dataclass
 from uuid import uuid4
@@ -13,6 +14,8 @@ from videoedgeai_task.llm import (
     AuditParseError,
     LLMProvider,
     LLMProviderError,
+    build_audit_request_payload,
+    build_polish_request_payload,
     parse_audit_json,
 )
 from videoedgeai_task.models import Audit, LLMCall, PipelineRun, TextVersion
@@ -90,35 +93,94 @@ class PipelineService:
         run = await self._get_run(tracking_id)
         latest_version = await self._latest_version(run.id)
         iteration = latest_version.version_number
-        request_hash = stable_hash("audit", run.current_text)
+        request_payload = build_audit_request_payload(run.current_text)
+        request_hash = self._hash_payload(request_payload)
 
-        first_response = await self._provider.suggest_improvements(run.current_text)
+        start = time.perf_counter()
+        try:
+            first_response = await self._provider.suggest_improvements(run.current_text)
+        except Exception as exc:
+            await self._record_llm_call(
+                run_id=run.id,
+                input_text_version_id=latest_version.id,
+                output_text_version_id=None,
+                iteration=iteration,
+                prompt_type="audit",
+                prompt_version=str(request_payload["prompt_version"]),
+                request_hash=request_hash,
+                request_payload=request_payload,
+                provider_params=None,
+                model_name=None,
+                raw_output=None,
+                parsed_output=None,
+                latency_ms=round((time.perf_counter() - start) * 1000),
+                success=False,
+                error=str(exc),
+            )
+            await self._session.commit()
+            raise LLMProviderError("audit provider call failed") from exc
         try:
             suggestions = parse_audit_json(first_response.content)
         except AuditParseError as exc:
             await self._record_llm_call(
                 run_id=run.id,
+                input_text_version_id=latest_version.id,
+                output_text_version_id=None,
                 iteration=iteration,
                 prompt_type="audit",
+                prompt_version=str(request_payload["prompt_version"]),
                 request_hash=request_hash,
+                request_payload=request_payload,
+                provider_params=first_response.provider_params,
+                model_name=first_response.model_name,
                 raw_output=first_response.content,
                 parsed_output=None,
                 latency_ms=first_response.latency_ms,
                 success=False,
                 error=str(exc),
             )
-            retry_response = await self._provider.suggest_improvements(
-                run.current_text,
-                repair=True,
-            )
+            retry_payload = build_audit_request_payload(run.current_text, repair=True)
+            retry_hash = self._hash_payload(retry_payload)
+            retry_start = time.perf_counter()
+            try:
+                retry_response = await self._provider.suggest_improvements(
+                    run.current_text,
+                    repair=True,
+                )
+            except Exception as retry_provider_exc:
+                await self._record_llm_call(
+                    run_id=run.id,
+                    input_text_version_id=latest_version.id,
+                    output_text_version_id=None,
+                    iteration=iteration,
+                    prompt_type="audit",
+                    prompt_version=str(retry_payload["prompt_version"]),
+                    request_hash=retry_hash,
+                    request_payload=retry_payload,
+                    provider_params=None,
+                    model_name=None,
+                    raw_output=None,
+                    parsed_output=None,
+                    latency_ms=round((time.perf_counter() - retry_start) * 1000),
+                    success=False,
+                    error=str(retry_provider_exc),
+                )
+                await self._session.commit()
+                raise LLMProviderError("audit repair provider call failed") from retry_provider_exc
             try:
                 suggestions = parse_audit_json(retry_response.content)
             except AuditParseError as retry_exc:
                 await self._record_llm_call(
                     run_id=run.id,
+                    input_text_version_id=latest_version.id,
+                    output_text_version_id=None,
                     iteration=iteration,
                     prompt_type="audit",
-                    request_hash=request_hash,
+                    prompt_version=str(retry_payload["prompt_version"]),
+                    request_hash=retry_hash,
+                    request_payload=retry_payload,
+                    provider_params=retry_response.provider_params,
+                    model_name=retry_response.model_name,
                     raw_output=retry_response.content,
                     parsed_output=None,
                     latency_ms=retry_response.latency_ms,
@@ -132,9 +194,15 @@ class PipelineService:
 
             await self._record_llm_call(
                 run_id=run.id,
+                input_text_version_id=latest_version.id,
+                output_text_version_id=None,
                 iteration=iteration,
                 prompt_type="audit",
-                request_hash=request_hash,
+                prompt_version=str(retry_payload["prompt_version"]),
+                request_hash=retry_hash,
+                request_payload=retry_payload,
+                provider_params=retry_response.provider_params,
+                model_name=retry_response.model_name,
                 raw_output=retry_response.content,
                 parsed_output={"suggestions": suggestions},
                 latency_ms=retry_response.latency_ms,
@@ -144,9 +212,15 @@ class PipelineService:
         else:
             await self._record_llm_call(
                 run_id=run.id,
+                input_text_version_id=latest_version.id,
+                output_text_version_id=None,
                 iteration=iteration,
                 prompt_type="audit",
+                prompt_version=str(request_payload["prompt_version"]),
                 request_hash=request_hash,
+                request_payload=request_payload,
+                provider_params=first_response.provider_params,
+                model_name=first_response.model_name,
                 raw_output=first_response.content,
                 parsed_output={"suggestions": suggestions},
                 latency_ms=first_response.latency_ms,
@@ -185,36 +259,85 @@ class PipelineService:
             suggestions = list(latest_audit.suggestions)
             latest_version = await self._latest_version(run.id)
             next_version_number = latest_version.version_number + 1
-            request_hash = stable_hash("polish", run.current_text, "\n".join(suggestions))
+            request_payload = build_polish_request_payload(run.current_text, suggestions)
+            request_hash = self._hash_payload(request_payload)
 
             start = time.perf_counter()
-            polish_response = await self._provider.apply_suggestions(run.current_text, suggestions)
+            try:
+                polish_response = await self._provider.apply_suggestions(
+                    run.current_text,
+                    suggestions,
+                )
+            except Exception as exc:
+                await self._record_llm_call(
+                    run_id=run.id,
+                    input_text_version_id=latest_version.id,
+                    output_text_version_id=None,
+                    iteration=next_version_number,
+                    prompt_type="polish",
+                    prompt_version=str(request_payload["prompt_version"]),
+                    request_hash=request_hash,
+                    request_payload=request_payload,
+                    provider_params=None,
+                    model_name=None,
+                    raw_output=None,
+                    parsed_output=None,
+                    latency_ms=round((time.perf_counter() - start) * 1000),
+                    success=False,
+                    error=str(exc),
+                )
+                await self._session.commit()
+                raise LLMProviderError("polish provider call failed") from exc
+
             latency_ms = polish_response.latency_ms or round((time.perf_counter() - start) * 1000)
             improved_text = normalize_model_text(polish_response.content)
             if not improved_text:
+                await self._record_llm_call(
+                    run_id=run.id,
+                    input_text_version_id=latest_version.id,
+                    output_text_version_id=None,
+                    iteration=next_version_number,
+                    prompt_type="polish",
+                    prompt_version=str(request_payload["prompt_version"]),
+                    request_hash=request_hash,
+                    request_payload=request_payload,
+                    provider_params=polish_response.provider_params,
+                    model_name=polish_response.model_name,
+                    raw_output=polish_response.content,
+                    parsed_output={"text": improved_text},
+                    latency_ms=latency_ms,
+                    success=False,
+                    error="polish response was empty",
+                )
+                await self._session.commit()
                 raise LLMProviderError("polish response was empty")
 
+            run.current_text = improved_text
+            run.status = "active"
+            new_version = TextVersion(
+                run_id=run.id,
+                version_number=next_version_number,
+                text=improved_text,
+                source_step="polish",
+            )
+            self._session.add(new_version)
+            await self._session.flush()
             await self._record_llm_call(
                 run_id=run.id,
+                input_text_version_id=latest_version.id,
+                output_text_version_id=new_version.id,
                 iteration=next_version_number,
                 prompt_type="polish",
+                prompt_version=str(request_payload["prompt_version"]),
                 request_hash=request_hash,
+                request_payload=request_payload,
+                provider_params=polish_response.provider_params,
+                model_name=polish_response.model_name,
                 raw_output=polish_response.content,
                 parsed_output={"text": improved_text},
                 latency_ms=latency_ms,
                 success=True,
                 error=None,
-            )
-
-            run.current_text = improved_text
-            run.status = "active"
-            self._session.add(
-                TextVersion(
-                    run_id=run.id,
-                    version_number=next_version_number,
-                    text=improved_text,
-                    source_step="polish",
-                )
             )
             await self._session.commit()
             polish_iterations += 1
@@ -314,9 +437,15 @@ class PipelineService:
         self,
         *,
         run_id: int,
+        input_text_version_id: int | None,
+        output_text_version_id: int | None,
         iteration: int,
         prompt_type: str,
+        prompt_version: str,
         request_hash: str,
+        request_payload: dict[str, object],
+        provider_params: dict[str, object] | None,
+        model_name: str | None,
         raw_output: str | None,
         parsed_output: dict[str, object] | list[object] | None,
         latency_ms: int,
@@ -326,10 +455,16 @@ class PipelineService:
         self._session.add(
             LLMCall(
                 run_id=run_id,
+                input_text_version_id=input_text_version_id,
+                output_text_version_id=output_text_version_id,
                 iteration=iteration,
                 provider=self._provider.name,
+                model_name=model_name,
                 prompt_type=prompt_type,
+                prompt_version=prompt_version,
                 request_hash=request_hash,
+                request_payload=request_payload,
+                provider_params=provider_params,
                 raw_output=raw_output,
                 parsed_output=parsed_output,
                 latency_ms=latency_ms,
@@ -337,6 +472,9 @@ class PipelineService:
                 error=error,
             )
         )
+
+    def _hash_payload(self, payload: dict[str, object]) -> str:
+        return stable_hash(json.dumps(payload, sort_keys=True, separators=(",", ":")))
 
     async def _count(self, model: type[TextVersion] | type[Audit], run_id: int) -> int:
         result = await self._session.execute(
@@ -368,4 +506,7 @@ class PipelineService:
             prompt_types[0] == "audit"
             and all(prompt_type in {"audit", "polish"} for prompt_type in prompt_types)
             and all(bool(call.request_hash) for call in llm_calls)
+            and all(call.input_text_version_id is not None for call in llm_calls)
+            and all(call.prompt_version for call in llm_calls)
+            and all(call.request_payload for call in llm_calls)
         )

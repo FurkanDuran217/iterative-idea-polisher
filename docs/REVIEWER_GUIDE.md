@@ -21,6 +21,8 @@ This project is designed so an evaluator can inspect both product reasoning and 
 - Run `python scripts/quality_gate.py` to execute tests, lint, type checks, and deterministic metrics.
 - Inspect `GET /api/v1/pipeline/{tracking_id}` to see versions, audits, and LLM call records.
 - Inspect `GET /api/v1/pipeline/{tracking_id}/metrics` to see compact traceability metrics.
+- Inspect each `llm_calls` item for prompt version, exact request payload, provider params, model,
+  input text version id, and output text version id.
 - Compare `v0.1.0` and `v0.2.0` to see the baseline implementation and the excellence pass.
 
 ## Expected Behavior

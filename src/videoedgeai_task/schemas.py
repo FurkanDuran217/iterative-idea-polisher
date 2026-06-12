@@ -62,10 +62,17 @@ class AuditRead(BaseModel):
 class LLMCallRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    input_text_version_id: int | None
+    output_text_version_id: int | None
     iteration: int
     provider: str
+    model_name: str | None
     prompt_type: str
+    prompt_version: str
     request_hash: str
+    request_payload: dict[str, Any]
+    provider_params: dict[str, Any] | None
+    raw_output: str | None
     parsed_output: dict[str, Any] | list[Any] | None
     latency_ms: int
     success: bool
