@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "idea-polisher"
-version = "0.1.0"
+version = "0.2.0"
 description = "Air-gapped iterative idea polishing pipeline built with FastAPI."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -45,4 +45,3 @@ python_version = "3.11"
 strict = true
 plugins = []
 exclude = ["tests/"]
-

@@ -1,4 +1,4 @@
-.PHONY: install dev test lint typecheck run demo metrics clean
+.PHONY: install dev test lint typecheck run demo metrics quality clean
 
 install:
 	python -m pip install -e ".[dev]"
@@ -23,6 +23,9 @@ demo:
 
 metrics:
 	python scripts/evaluate_metrics.py
+
+quality:
+	python scripts/quality_gate.py
 
 clean:
 	python -c "from pathlib import Path; [p.unlink() for p in Path('.').glob('*.db')]"

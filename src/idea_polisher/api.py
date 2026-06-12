@@ -14,6 +14,7 @@ from idea_polisher.schemas import (
     FinalizeResponse,
     HealthResponse,
     LLMCallRead,
+    PipelineMetricsResponse,
     PipelineRunRead,
     StartPipelineRequest,
     StartPipelineResponse,
@@ -103,6 +104,18 @@ async def get_pipeline(
         audits=[AuditRead.model_validate(audit) for audit in run.audits],
         llm_calls=[LLMCallRead.model_validate(call) for call in run.llm_calls],
     )
+
+
+@router.get("/pipeline/{tracking_id}/metrics", response_model=PipelineMetricsResponse)
+async def get_pipeline_metrics(
+    tracking_id: str,
+    service: Annotated[PipelineService, Depends(get_service)],
+) -> PipelineMetricsResponse:
+    try:
+        metrics = await service.get_metrics(tracking_id)
+    except PipelineNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return PipelineMetricsResponse(**metrics.__dict__)
 
 
 @router.get("/health", response_model=HealthResponse)

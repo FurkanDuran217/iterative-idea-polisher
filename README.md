@@ -30,6 +30,8 @@ flowchart LR
 
 The implementation records every text version, audit, and LLM call. That history is available
 through `GET /api/v1/pipeline/{tracking_id}` so a reviewer can verify that each step is independent.
+For a compact summary, `GET /api/v1/pipeline/{tracking_id}/metrics` returns version counts, audit
+counts, LLM call success, word delta, and an air-gap trace flag.
 
 ## Quick Start
 
@@ -64,6 +66,12 @@ Run a multi-metric evaluation report:
 
 ```bash
 python scripts/evaluate_metrics.py
+```
+
+Run the full quality gate:
+
+```bash
+python scripts/quality_gate.py
 ```
 
 Run checks:
@@ -101,6 +109,10 @@ Runs polish and fresh audit calls until the audit returns no suggestions or `MAX
 ### `GET /api/v1/pipeline/{tracking_id}`
 
 Returns the run, text versions, audit records, and LLM call metadata.
+
+### `GET /api/v1/pipeline/{tracking_id}/metrics`
+
+Returns compact traceability metrics for versions, audits, LLM calls, word delta, and air-gap proof.
 
 ## LLM Providers
 

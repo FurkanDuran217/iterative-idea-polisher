@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from idea_polisher import __version__
 from idea_polisher.api import router
 from idea_polisher.config import get_settings
 from idea_polisher.db import init_db
@@ -19,7 +20,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title=settings.app_name, version=__version__, lifespan=lifespan)
     app.include_router(router)
 
     @app.get("/health", response_model=HealthResponse, tags=["health"])
@@ -34,4 +35,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-
