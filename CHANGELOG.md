@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.5.0 - Baseline Evaluation and Prompt Experiments
+
+- Expanded the deterministic evaluation report with metric definitions, limitations, baseline
+  comparison, and before/after output samples.
+- Added `original_input`, `fixed_template`, and `pipeline_mock` baseline comparisons.
+- Added an offline prompt-variant evaluation that explains why strict audit JSON and
+  final-text-only polish prompts were selected.
+- Added evaluation methodology documentation for reviewer-friendly interpretation of the metrics.
+
 ## v0.4.0 - Traceability and Failure Hardening
 
 - Added exact LLM request payload, prompt version, model name, provider params, and text-version links to `llm_calls`.

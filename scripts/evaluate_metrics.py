@@ -35,6 +35,44 @@ STOP_WORDS = {
     "with",
 }
 
+METRIC_DEFINITIONS = {
+    "quality_proxy_score": (
+        "Average of structure coverage, faithfulness recall, clarity proxy, and "
+        "actionability. This is a deterministic guardrail, not a human quality score."
+    ),
+    "structure_coverage": (
+        "Fraction of required reviewer labels present: Problem, Audience, Value, "
+        "Next step, and Success measure."
+    ),
+    "faithfulness_recall": (
+        "Fraction of non-stopword content words from the original that still appear "
+        "in the final text."
+    ),
+    "clarity_proxy_score": (
+        "Heuristic score based on word count and paragraph structure. It rewards "
+        "reviewable length without proving style quality."
+    ),
+    "actionability_score": (
+        "Heuristic score for whether the output contains both a next step and a "
+        "success measure."
+    ),
+    "air_gap_trace_rate": (
+        "Share of runs whose LLM calls have request hashes, valid prompt types, prompt "
+        "versions, request payloads, and linked input text versions."
+    ),
+    "traceability_score": (
+        "Baseline-only engineering signal. Raw text and fixed templates score 0 because they "
+        "do not create inspectable pipeline history; the API pipeline scores 5 when traces exist."
+    ),
+}
+METRIC_LIMITATIONS = [
+    "The mock provider is deterministic, so these metrics prove contract behavior and "
+    "traceability rather than real LLM judgment quality.",
+    "Label-based structure can be gamed by any output that prints the expected labels.",
+    "Faithfulness recall checks word preservation, not whether the meaning was improved.",
+    "A human rubric is still required for final hiring-task quality judgment.",
+]
+
 
 @dataclass(frozen=True)
 class EvaluationCase:
@@ -44,8 +82,26 @@ class EvaluationCase:
 
 
 @dataclass
+class BaselineMetrics:
+    case_name: str
+    method: str
+    description: str
+    final_text: str
+    final_word_count: int
+    word_delta: int
+    structure_coverage: float
+    faithfulness_recall: float
+    clarity_proxy_score: float
+    actionability_score: float
+    traceability_score: float
+    quality_proxy_score: float
+
+
+@dataclass
 class CaseMetrics:
     name: str
+    original_text: str
+    final_text: str
     success: bool
     expected_polish: bool
     needed_polish: bool
@@ -184,16 +240,28 @@ async def evaluate_case(client: httpx.AsyncClient, case: EvaluationCase) -> Case
     detail_response.raise_for_status()
     detail_payload = detail_response.json()
 
+    metrics_response, elapsed = await timed_request(
+        client,
+        "GET",
+        f"/api/v1/pipeline/{tracking_id}/metrics",
+    )
+    total_api_ms += elapsed
+    metrics_response.raise_for_status()
+    metrics_payload = metrics_response.json()
+
     llm_calls = detail_payload["llm_calls"]
     final_text = final_payload["final_text"]
-    structure_coverage = label_coverage(final_text)
-    faithfulness = faithfulness_recall(case.text, final_text)
-    clarity = clarity_proxy(final_text)
-    actionability = actionability_score(final_text)
-    quality = round(mean([structure_coverage * 5, faithfulness * 5, clarity, actionability]), 2)
+    scored = score_text(
+        case=case,
+        method="pipeline_mock",
+        final_text=final_text,
+        description="Full API loop with audit, polish, persistence, and trace records.",
+    )
 
     return CaseMetrics(
         name=case.name,
+        original_text=case.text,
+        final_text=final_text,
         success=finalize_response.status_code == 200,
         expected_polish=case.expected_polish,
         needed_polish=bool(audit_payload["needs_polish"]),
@@ -206,15 +274,15 @@ async def evaluate_case(client: httpx.AsyncClient, case: EvaluationCase) -> Case
         total_api_ms=total_api_ms,
         recorded_llm_ms=sum(int(call["latency_ms"]) for call in llm_calls),
         original_word_count=len(words(case.text)),
-        final_word_count=len(words(final_text)),
-        word_delta=len(words(final_text)) - len(words(case.text)),
-        structure_coverage=round(structure_coverage, 2),
-        faithfulness_recall=round(faithfulness, 2),
-        clarity_proxy_score=clarity,
-        actionability_score=actionability,
-        quality_proxy_score=quality,
+        final_word_count=scored.final_word_count,
+        word_delta=scored.word_delta,
+        structure_coverage=scored.structure_coverage,
+        faithfulness_recall=scored.faithfulness_recall,
+        clarity_proxy_score=scored.clarity_proxy_score,
+        actionability_score=scored.actionability_score,
+        quality_proxy_score=scored.quality_proxy_score,
         all_llm_calls_successful=all(bool(call["success"]) for call in llm_calls),
-        air_gap_trace_ok=air_gap_trace_ok(llm_calls),
+        air_gap_trace_ok=bool(metrics_payload["air_gap_trace_ok"]),
     )
 
 
@@ -259,14 +327,105 @@ def actionability_score(text: str) -> float:
     return score
 
 
-def air_gap_trace_ok(llm_calls: list[dict[str, Any]]) -> bool:
-    if not llm_calls:
-        return False
-    has_hashes = all(bool(call["request_hash"]) for call in llm_calls)
-    prompt_types = [call["prompt_type"] for call in llm_calls]
-    allowed_prompt_types = all(prompt_type in {"audit", "polish"} for prompt_type in prompt_types)
-    starts_with_audit = prompt_types[0] == "audit"
-    return has_hashes and allowed_prompt_types and starts_with_audit
+def score_text(
+    case: EvaluationCase,
+    method: str,
+    final_text: str,
+    description: str,
+    traceability_score: float = 0.0,
+) -> BaselineMetrics:
+    structure_coverage = label_coverage(final_text)
+    faithfulness = faithfulness_recall(case.text, final_text)
+    clarity = clarity_proxy(final_text)
+    actionability = actionability_score(final_text)
+    quality = round(mean([structure_coverage * 5, faithfulness * 5, clarity, actionability]), 2)
+    return BaselineMetrics(
+        case_name=case.name,
+        method=method,
+        description=description,
+        final_text=final_text,
+        final_word_count=len(words(final_text)),
+        word_delta=len(words(final_text)) - len(words(case.text)),
+        structure_coverage=round(structure_coverage, 2),
+        faithfulness_recall=round(faithfulness, 2),
+        clarity_proxy_score=clarity,
+        actionability_score=actionability,
+        traceability_score=traceability_score,
+        quality_proxy_score=quality,
+    )
+
+
+def identity_baseline(case: EvaluationCase) -> str:
+    return " ".join(case.text.split())
+
+
+def template_baseline(case: EvaluationCase) -> str:
+    normalized = " ".join(case.text.split())
+    return "\n\n".join(
+        [
+            f"Problem: {normalized}",
+            "Audience: The likely users who already feel this problem.",
+            "Value: The idea should make the original workflow easier to understand or act on.",
+            "Next step: Ask one target user whether the rewritten problem matches their reality.",
+            "Success measure: A reviewer can describe the user, problem, value, and next step.",
+        ]
+    )
+
+
+def evaluate_baselines(
+    cases: list[EvaluationCase],
+    pipeline_cases: list[CaseMetrics],
+) -> list[BaselineMetrics]:
+    pipeline_by_name = {case.name: case.final_text for case in pipeline_cases}
+    rows: list[BaselineMetrics] = []
+    for case in cases:
+        rows.append(
+            score_text(
+                case=case,
+                method="original_input",
+                final_text=identity_baseline(case),
+                description=(
+                    "No-op baseline. Shows how much the raw idea already satisfies metrics."
+                ),
+            )
+        )
+        rows.append(
+            score_text(
+                case=case,
+                method="fixed_template",
+                final_text=template_baseline(case),
+                description="Rule-based label template without audit, iteration, or LLM trace.",
+            )
+        )
+        rows.append(
+            score_text(
+                case=case,
+                method="pipeline_mock",
+                final_text=pipeline_by_name[case.name],
+                description="Full API loop with audit, polish, persistence, and trace records.",
+                traceability_score=5.0,
+            )
+        )
+    return rows
+
+
+def aggregate_baselines(rows: list[BaselineMetrics]) -> dict[str, dict[str, Any]]:
+    methods = sorted({row.method for row in rows})
+    aggregate: dict[str, dict[str, Any]] = {}
+    for method in methods:
+        subset = [row for row in rows if row.method == method]
+        aggregate[method] = {
+            "description": subset[0].description,
+            "case_count": len(subset),
+            "avg_quality_proxy_score": round(mean(row.quality_proxy_score for row in subset), 2),
+            "avg_structure_coverage": round(mean(row.structure_coverage for row in subset), 2),
+            "avg_faithfulness_recall": round(mean(row.faithfulness_recall for row in subset), 2),
+            "avg_clarity_proxy_score": round(mean(row.clarity_proxy_score for row in subset), 2),
+            "avg_actionability_score": round(mean(row.actionability_score for row in subset), 2),
+            "avg_traceability_score": round(mean(row.traceability_score for row in subset), 2),
+            "avg_word_delta": round(mean(row.word_delta for row in subset), 2),
+        }
+    return aggregate
 
 
 def percentile(values: list[int], percent: float) -> int:
@@ -281,20 +440,26 @@ async def run_evaluation() -> dict[str, Any]:
     db_path, outputs_dir = prepare_evaluation_paths()
     configure_database(f"sqlite+aiosqlite:///{db_path.as_posix()}")
 
+    evaluation_cases = dataset()
     cases: list[CaseMetrics] = []
     transport = httpx.ASGITransport(app=app)
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=transport, base_url="http://metrics") as client:
-            for case in dataset():
+            for case in evaluation_cases:
                 cases.append(await evaluate_case(client, case))
             determinism = await evaluate_determinism(client)
 
     await drop_db()
     await dispose_db()
 
+    baseline_rows = evaluate_baselines(evaluation_cases, cases)
     aggregate = aggregate_metrics(cases, determinism)
     payload = {
+        "metric_definitions": METRIC_DEFINITIONS,
+        "limitations": METRIC_LIMITATIONS,
         "aggregate": aggregate,
+        "baseline_aggregate": aggregate_baselines(baseline_rows),
+        "baseline_cases": [asdict(row) for row in baseline_rows],
         "cases": [asdict(case) for case in cases],
         "determinism": determinism,
     }
@@ -370,17 +535,58 @@ def aggregate_metrics(
 
 
 def render_report(payload: dict[str, Any]) -> str:
-    aggregate = payload["aggregate"]
-    cases = payload["cases"]
     lines = [
         "# Evaluation Report",
         "",
-        "## Aggregate Metrics",
+        "This report is generated by `python scripts/evaluate_metrics.py` with the "
+        "deterministic mock provider. It measures API behavior, traceability, and "
+        "proxy quality signals. It does not claim to replace human review.",
         "",
-        "| Metric | Value |",
-        "| --- | ---: |",
+        "## Metric Definitions",
+        "",
+        "| Metric | Meaning |",
+        "| --- | --- |",
     ]
-    for key, value in aggregate.items():
+    for key, value in payload["metric_definitions"].items():
+        lines.append(f"| {key} | {value} |")
+
+    lines.extend(["", "## Limitations", ""])
+    for limitation in payload["limitations"]:
+        lines.append(f"- {limitation}")
+
+    lines.extend(
+        [
+            "",
+            "## Baseline Comparison",
+            "",
+            "| Method | Quality | Struct | Faith | Clarity | Action | Trace | Word Delta |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for method, row in payload["baseline_aggregate"].items():
+        lines.append(
+            "| {method} | {avg_quality_proxy_score} | {avg_structure_coverage} | "
+            "{avg_faithfulness_recall} | {avg_clarity_proxy_score} | "
+            "{avg_actionability_score} | {avg_traceability_score} | {avg_word_delta} |".format(
+                method=method,
+                **row,
+            )
+        )
+
+    lines.extend(["", "Baseline descriptions:", ""])
+    for method, row in payload["baseline_aggregate"].items():
+        lines.append(f"- `{method}`: {row['description']}")
+
+    lines.extend(
+        [
+            "",
+            "## Aggregate API Metrics",
+            "",
+            "| Metric | Value |",
+            "| --- | ---: |",
+        ]
+    )
+    for key, value in payload["aggregate"].items():
         lines.append(f"| {key} | {value} |")
 
     lines.extend(
@@ -388,21 +594,48 @@ def render_report(payload: dict[str, Any]) -> str:
             "",
             "## Case Metrics",
             "",
-            "| Case | Iter | Conv | Quality | Struct | Faith | API ms | LLM calls |",
-            "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |",
+            "| Case | Iter | Conv | Quality | Struct | Faith | API ms | LLM calls | Trace |",
+            "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |",
         ]
     )
-    for case in cases:
+    for case in payload["cases"]:
         lines.append(
             "| {name} | {iteration_count} | {convergence_reason} | "
             "{quality_proxy_score} | {structure_coverage} | {faithfulness_recall} | "
-            "{total_api_ms} | {llm_call_count} |".format(**case)
+            "{total_api_ms} | {llm_call_count} | {air_gap_trace_ok} |".format(**case)
+        )
+
+    lines.extend(["", "## Output Samples", ""])
+    baseline_by_case = group_baseline_cases(payload["baseline_cases"])
+    for case in payload["cases"]:
+        lines.extend(
+            [
+                f"### {case['name']}",
+                "",
+                "Original:",
+                "",
+                "```text",
+                case["original_text"],
+                "```",
+                "",
+                "Fixed-template baseline:",
+                "",
+                "```text",
+                baseline_by_case[case["name"]]["fixed_template"]["final_text"],
+                "```",
+                "",
+                "Pipeline final output:",
+                "",
+                "```text",
+                case["final_text"],
+                "```",
+                "",
+            ]
         )
 
     determinism = payload["determinism"]
     lines.extend(
         [
-            "",
             "## Determinism Probe",
             "",
             f"Passed: {determinism['passed']}",
@@ -413,6 +646,15 @@ def render_report(payload: dict[str, Any]) -> str:
         ]
     )
     return "\n".join(lines)
+
+
+def group_baseline_cases(
+    rows: list[dict[str, Any]],
+) -> dict[str, dict[str, dict[str, Any]]]:
+    grouped: dict[str, dict[str, dict[str, Any]]] = {}
+    for row in rows:
+        grouped.setdefault(row["case_name"], {})[row["method"]] = row
+    return grouped
 
 
 def main() -> None:
