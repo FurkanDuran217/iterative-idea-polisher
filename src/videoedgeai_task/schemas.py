@@ -25,11 +25,20 @@ class StartPipelineResponse(BaseModel):
 
 
 class PipelineActionRequest(BaseModel):
-    provider: Literal["mock", "openai"] = "mock"
+    provider: Literal["mock", "ollama", "openai", "openai_compatible"] = "mock"
     openai_api_key: str | None = Field(default=None, repr=False)
     openai_model: str | None = None
+    openai_base_url: str | None = None
+    ollama_base_url: str | None = None
+    ollama_model: str | None = None
 
-    @field_validator("openai_api_key", "openai_model")
+    @field_validator(
+        "openai_api_key",
+        "openai_model",
+        "openai_base_url",
+        "ollama_base_url",
+        "ollama_model",
+    )
     @classmethod
     def blank_string_to_none(cls, value: str | None) -> str | None:
         if value is None:

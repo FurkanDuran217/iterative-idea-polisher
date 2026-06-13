@@ -12,6 +12,7 @@ This project uses semantic versioning.
 - `v0.6.2`: reviewer console usability pass.
 - `v0.7.0`: smart audit verdict and UI clarity pass.
 - `v0.8.0`: request-level provider override and reviewer-console provider selection pass.
+- `v0.9.0`: Ollama local LLM and OpenAI-compatible provider pass.
 
 Suggested release workflow:
 

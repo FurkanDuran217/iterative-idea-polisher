@@ -42,7 +42,14 @@ def build_action_service(
     action = payload or PipelineActionRequest()
     if action.provider == "mock":
         action_settings = replace(settings, llm_provider="mock")
-    else:
+    elif action.provider == "ollama":
+        action_settings = replace(
+            settings,
+            llm_provider="ollama",
+            ollama_base_url=action.ollama_base_url or settings.ollama_base_url,
+            ollama_model=action.ollama_model or settings.ollama_model,
+        )
+    elif action.provider == "openai":
         api_key = action.openai_api_key or settings.openai_api_key
         if not api_key:
             raise HTTPException(
@@ -54,6 +61,21 @@ def build_action_service(
             llm_provider="openai",
             openai_api_key=api_key,
             openai_model=action.openai_model or settings.openai_model,
+            openai_base_url=action.openai_base_url or settings.openai_base_url,
+        )
+    else:
+        base_url = action.openai_base_url or settings.openai_base_url
+        if not base_url:
+            raise HTTPException(
+                status_code=422,
+                detail="openai_base_url is required when provider is openai_compatible",
+            )
+        action_settings = replace(
+            settings,
+            llm_provider="openai_compatible",
+            openai_api_key=action.openai_api_key or settings.openai_api_key or "local",
+            openai_model=action.openai_model or settings.openai_model,
+            openai_base_url=base_url,
         )
 
     try:

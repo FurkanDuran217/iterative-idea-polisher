@@ -4,13 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "videoedgeai-task"
-version = "0.8.0"
+version = "0.9.0"
 description = "VideoEdgeAI task: air-gapped iterative idea polishing pipeline built with FastAPI."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "aiosqlite>=0.20.0",
     "fastapi>=0.115.0",
+    "httpx>=0.27.0",
     "openai>=1.50.0",
     "pydantic>=2.8.0",
     "sqlalchemy>=2.0.32",
@@ -19,7 +20,6 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "httpx>=0.27.0",
     "mypy>=1.11.0",
     "pytest>=8.3.0",
     "pytest-asyncio>=0.24.0",

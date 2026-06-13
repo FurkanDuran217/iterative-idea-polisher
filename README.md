@@ -51,8 +51,8 @@ http://127.0.0.1:8000/
 ```
 
 The console runs with the deterministic mock provider by default. Reviewers can also switch the
-same Audit/Finalize/Full Pipeline buttons to OpenAI mode from the UI by entering an API key and
-model. The key is used only for that request and is not written to the database or trace log.
+same Audit/Finalize/Full Pipeline buttons to Ollama or an OpenAI-compatible API from the UI.
+API keys are used only for that request and are not written to the database or trace log.
 
 On Windows, the safest way to start the console from any terminal directory is:
 
@@ -84,6 +84,13 @@ Run the deterministic mock demo:
 
 ```bash
 python scripts/demo.py
+```
+
+Run a local Ollama smoke test:
+
+```bash
+ollama pull llama3.2:3b
+python scripts/ollama_smoke.py
 ```
 
 Run a multi-metric evaluation report:
@@ -149,7 +156,23 @@ Optional per-request provider override:
 ```
 
 ```json
-{"provider": "openai", "openai_api_key": "sk-...", "openai_model": "gpt-4.1-mini"}
+{"provider": "ollama", "ollama_model": "llama3.2:3b"}
+```
+
+```json
+{
+  "provider": "openai_compatible",
+  "openai_base_url": "http://127.0.0.1:1234/v1",
+  "openai_model": "local-model"
+}
+```
+
+```json
+{
+  "provider": "openai",
+  "openai_api_key": "sk-...",
+  "openai_model": "gpt-4.1-mini"
+}
 ```
 
 ### `POST /api/v1/pipeline/finalize/{tracking_id}`
@@ -184,8 +207,26 @@ OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4.1-mini
 ```
 
-The mock provider is intentional: reviewers can run the full workflow without credentials, while
-the provider interface keeps the production LLM integration isolated.
+Free local Ollama mode:
+
+```env
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=llama3.2:3b
+```
+
+OpenAI-compatible mode for local or hosted gateways:
+
+```env
+LLM_PROVIDER=openai_compatible
+OPENAI_BASE_URL=http://127.0.0.1:1234/v1
+OPENAI_MODEL=local-model
+OPENAI_API_KEY=local
+```
+
+The mock provider is intentional for deterministic reviewer demos. Ollama is the preferred
+credential-free real LLM path, and OpenAI-compatible mode lets a reviewer connect their own local
+or hosted model without changing application code.
 
 ## Example Run
 

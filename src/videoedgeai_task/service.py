@@ -104,6 +104,7 @@ class PipelineService:
         try:
             first_response = await self._provider.suggest_improvements(run.current_text)
         except Exception as exc:
+            public_error = self._provider_error_message(exc, "audit provider call failed")
             await self._record_llm_call(
                 run_id=run.id,
                 input_text_version_id=latest_version.id,
@@ -119,10 +120,10 @@ class PipelineService:
                 parsed_output=None,
                 latency_ms=round((time.perf_counter() - start) * 1000),
                 success=False,
-                error=str(exc),
+                error=public_error,
             )
             await self._session.commit()
-            raise LLMProviderError("audit provider call failed") from exc
+            raise LLMProviderError(public_error) from exc
         try:
             verdict = parse_audit_verdict(first_response.content)
         except AuditParseError as exc:
@@ -152,6 +153,10 @@ class PipelineService:
                     repair=True,
                 )
             except Exception as retry_provider_exc:
+                public_error = self._provider_error_message(
+                    retry_provider_exc,
+                    "audit repair provider call failed",
+                )
                 await self._record_llm_call(
                     run_id=run.id,
                     input_text_version_id=latest_version.id,
@@ -167,10 +172,10 @@ class PipelineService:
                     parsed_output=None,
                     latency_ms=round((time.perf_counter() - retry_start) * 1000),
                     success=False,
-                    error=str(retry_provider_exc),
+                    error=public_error,
                 )
                 await self._session.commit()
-                raise LLMProviderError("audit repair provider call failed") from retry_provider_exc
+                raise LLMProviderError(public_error) from retry_provider_exc
             try:
                 verdict = parse_audit_verdict(retry_response.content)
             except AuditParseError as retry_exc:
@@ -274,6 +279,7 @@ class PipelineService:
                     suggestions,
                 )
             except Exception as exc:
+                public_error = self._provider_error_message(exc, "polish provider call failed")
                 await self._record_llm_call(
                     run_id=run.id,
                     input_text_version_id=latest_version.id,
@@ -289,10 +295,10 @@ class PipelineService:
                     parsed_output=None,
                     latency_ms=round((time.perf_counter() - start) * 1000),
                     success=False,
-                    error=str(exc),
+                    error=public_error,
                 )
                 await self._session.commit()
-                raise LLMProviderError("polish provider call failed") from exc
+                raise LLMProviderError(public_error) from exc
 
             latency_ms = polish_response.latency_ms or round((time.perf_counter() - start) * 1000)
             improved_text = normalize_model_text(polish_response.content)
@@ -484,6 +490,13 @@ class PipelineService:
 
     def _hash_payload(self, payload: dict[str, object]) -> str:
         return stable_hash(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+
+    def _provider_error_message(self, exc: Exception, fallback: str) -> str:
+        if isinstance(exc, LLMProviderError) and str(exc):
+            return str(exc)
+        if str(exc):
+            return f"{fallback}: {exc}"
+        return fallback
 
     async def _count(self, model: type[TextVersion] | type[Audit], run_id: int) -> int:
         result = await self._session.execute(

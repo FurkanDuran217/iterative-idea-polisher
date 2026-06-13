@@ -347,15 +347,27 @@ class MockLLMProvider:
 class OpenAILLMProvider:
     name = "openai"
 
-    def __init__(self, settings: Settings) -> None:
-        if not settings.openai_api_key:
-            raise LLMProviderError("OPENAI_API_KEY is required when LLM_PROVIDER=openai")
+    def __init__(self, settings: Settings, *, provider_name: str = "openai") -> None:
+        api_key = settings.openai_api_key
+        if not api_key and provider_name == "openai_compatible" and settings.openai_base_url:
+            api_key = "local"
+        if not api_key:
+            raise LLMProviderError(
+                "OPENAI_API_KEY is required when LLM_PROVIDER=openai"
+            )
         try:
             from openai import AsyncOpenAI
         except ImportError as exc:
             raise LLMProviderError("Install the openai package to use LLM_PROVIDER=openai") from exc
 
-        self._client = AsyncOpenAI(api_key=settings.openai_api_key)
+        self._base_url: str | None
+        if settings.openai_base_url:
+            self._base_url = settings.openai_base_url.rstrip("/")
+            self._client = AsyncOpenAI(api_key=api_key, base_url=self._base_url)
+        else:
+            self._base_url = None
+            self._client = AsyncOpenAI(api_key=api_key)
+        self.name = provider_name
         self._model = settings.openai_model
 
     async def suggest_improvements(self, text: str, *, repair: bool = False) -> RawLLMResponse:
@@ -373,7 +385,7 @@ class OpenAILLMProvider:
             content=content,
             latency_ms=latency_ms,
             model_name=self._model,
-            provider_params={"temperature": payload["temperature"]},
+            provider_params=self._provider_params(payload["temperature"]),
         )
 
     async def apply_suggestions(self, text: str, suggestions: list[str]) -> RawLLMResponse:
@@ -390,7 +402,85 @@ class OpenAILLMProvider:
             content=content,
             latency_ms=latency_ms,
             model_name=self._model,
-            provider_params={"temperature": payload["temperature"]},
+            provider_params=self._provider_params(payload["temperature"]),
+        )
+
+    def _provider_params(self, temperature: object) -> dict[str, object]:
+        params: dict[str, object] = {"temperature": temperature}
+        if self._base_url:
+            params["base_url"] = self._base_url
+        return params
+
+
+class OllamaLLMProvider:
+    name = "ollama"
+
+    def __init__(self, settings: Settings) -> None:
+        self._base_url = settings.ollama_base_url.rstrip("/")
+        self._model = settings.ollama_model
+        self._timeout_seconds = settings.llm_timeout_seconds
+
+    async def suggest_improvements(self, text: str, *, repair: bool = False) -> RawLLMResponse:
+        payload = build_audit_request_payload(text, repair=repair)
+        return await self._chat(
+            messages=payload["messages"],
+            temperature=float(payload["temperature"]),
+            response_format="json",
+        )
+
+    async def apply_suggestions(self, text: str, suggestions: list[str]) -> RawLLMResponse:
+        payload = build_polish_request_payload(text, suggestions)
+        return await self._chat(
+            messages=payload["messages"],
+            temperature=float(payload["temperature"]),
+            response_format=None,
+        )
+
+    async def _chat(
+        self,
+        *,
+        messages: list[dict[str, str]],
+        temperature: float,
+        response_format: str | None,
+    ) -> RawLLMResponse:
+        try:
+            import httpx
+        except ImportError as exc:
+            raise LLMProviderError("Install httpx to use LLM_PROVIDER=ollama") from exc
+
+        request_payload: dict[str, object] = {
+            "model": self._model,
+            "messages": messages,
+            "stream": False,
+            "options": {"temperature": temperature},
+        }
+        if response_format:
+            request_payload["format"] = response_format
+
+        start = time.perf_counter()
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout_seconds) as client:
+                response = await client.post(f"{self._base_url}/api/chat", json=request_payload)
+                response.raise_for_status()
+                payload = response.json()
+        except Exception as exc:
+            raise LLMProviderError(
+                "Ollama provider call failed; verify Ollama is running and the model is pulled"
+            ) from exc
+
+        message = payload.get("message")
+        if not isinstance(message, dict) or not isinstance(message.get("content"), str):
+            raise LLMProviderError("Ollama response did not include message.content")
+
+        latency_ms = round((time.perf_counter() - start) * 1000)
+        return RawLLMResponse(
+            content=message["content"],
+            latency_ms=latency_ms,
+            model_name=self._model,
+            provider_params={
+                "temperature": temperature,
+                "base_url": self._base_url,
+            },
         )
 
 
@@ -398,6 +488,10 @@ def get_llm_provider(settings: Settings) -> LLMProvider:
     provider = settings.llm_provider.lower().strip()
     if provider == "mock":
         return MockLLMProvider()
+    if provider == "ollama":
+        return OllamaLLMProvider(settings)
     if provider == "openai":
         return OpenAILLMProvider(settings)
+    if provider == "openai_compatible":
+        return OpenAILLMProvider(settings, provider_name="openai_compatible")
     raise LLMProviderError(f"Unsupported LLM_PROVIDER: {settings.llm_provider}")
