@@ -6,6 +6,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+import httpx
+
 from videoedgeai_task.config import Settings
 
 AUDIT_PROMPT_VERSION = "audit.v4"
@@ -514,12 +516,198 @@ class OllamaLLMProvider:
         )
 
 
+class GeminiLLMProvider:
+    name = "gemini"
+
+    def __init__(self, settings: Settings) -> None:
+        if not settings.gemini_api_key:
+            raise LLMProviderError("GEMINI_API_KEY is required when provider=gemini")
+        self._api_key = settings.gemini_api_key
+        self._model = settings.gemini_model
+        self._base_url = settings.gemini_base_url.rstrip("/")
+        self._timeout_seconds = settings.llm_timeout_seconds
+
+    async def suggest_improvements(self, text: str, *, repair: bool = False) -> RawLLMResponse:
+        payload = build_audit_request_payload(text, repair=repair)
+        return await self._generate(
+            system_prompt=str(payload["messages"][0]["content"]),
+            user_prompt=str(payload["messages"][1]["content"]),
+            temperature=float(payload["temperature"]),
+            response_mime_type="application/json",
+        )
+
+    async def apply_suggestions(self, text: str, suggestions: list[str]) -> RawLLMResponse:
+        payload = build_polish_request_payload(text, suggestions)
+        return await self._generate(
+            system_prompt=str(payload["messages"][0]["content"]),
+            user_prompt=str(payload["messages"][1]["content"]),
+            temperature=float(payload["temperature"]),
+            response_mime_type="text/plain",
+        )
+
+    async def _generate(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float,
+        response_mime_type: str,
+    ) -> RawLLMResponse:
+        request_payload: dict[str, Any] = {
+            "systemInstruction": {"parts": [{"text": system_prompt}]},
+            "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
+            "generationConfig": {
+                "temperature": temperature,
+                "responseMimeType": response_mime_type,
+            },
+        }
+        start = time.perf_counter()
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout_seconds) as client:
+                response = await client.post(
+                    f"{self._base_url}/v1beta/models/{self._model}:generateContent",
+                    headers={"x-goog-api-key": self._api_key},
+                    json=request_payload,
+                )
+                response.raise_for_status()
+                payload = response.json()
+        except httpx.HTTPStatusError as exc:
+            raise LLMProviderError(f"Gemini request failed: {_http_status_detail(exc)}") from exc
+        except httpx.HTTPError as exc:
+            raise LLMProviderError(f"Gemini request failed: {exc}") from exc
+
+        latency_ms = round((time.perf_counter() - start) * 1000)
+        return RawLLMResponse(
+            content=_extract_gemini_text(payload),
+            latency_ms=latency_ms,
+            model_name=self._model,
+            provider_params={
+                "temperature": temperature,
+                "response_mime_type": response_mime_type,
+                "base_url": self._base_url,
+            },
+        )
+
+
+class AnthropicLLMProvider:
+    name = "claude"
+
+    def __init__(self, settings: Settings) -> None:
+        if not settings.anthropic_api_key:
+            raise LLMProviderError("ANTHROPIC_API_KEY is required when provider=claude")
+        self._api_key = settings.anthropic_api_key
+        self._model = settings.anthropic_model
+        self._base_url = settings.anthropic_base_url.rstrip("/")
+        self._timeout_seconds = settings.llm_timeout_seconds
+
+    async def suggest_improvements(self, text: str, *, repair: bool = False) -> RawLLMResponse:
+        payload = build_audit_request_payload(text, repair=repair)
+        return await self._generate(
+            system_prompt=str(payload["messages"][0]["content"]),
+            user_prompt=str(payload["messages"][1]["content"]),
+            temperature=float(payload["temperature"]),
+        )
+
+    async def apply_suggestions(self, text: str, suggestions: list[str]) -> RawLLMResponse:
+        payload = build_polish_request_payload(text, suggestions)
+        return await self._generate(
+            system_prompt=str(payload["messages"][0]["content"]),
+            user_prompt=str(payload["messages"][1]["content"]),
+            temperature=float(payload["temperature"]),
+        )
+
+    async def _generate(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float,
+    ) -> RawLLMResponse:
+        request_payload: dict[str, Any] = {
+            "model": self._model,
+            "max_tokens": 1200,
+            "temperature": temperature,
+            "system": system_prompt,
+            "messages": [{"role": "user", "content": user_prompt}],
+        }
+        start = time.perf_counter()
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout_seconds) as client:
+                response = await client.post(
+                    f"{self._base_url}/v1/messages",
+                    headers={
+                        "x-api-key": self._api_key,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json",
+                    },
+                    json=request_payload,
+                )
+                response.raise_for_status()
+                payload = response.json()
+        except httpx.HTTPStatusError as exc:
+            raise LLMProviderError(f"Claude request failed: {_http_status_detail(exc)}") from exc
+        except httpx.HTTPError as exc:
+            raise LLMProviderError(f"Claude request failed: {exc}") from exc
+
+        latency_ms = round((time.perf_counter() - start) * 1000)
+        return RawLLMResponse(
+            content=_extract_anthropic_text(payload),
+            latency_ms=latency_ms,
+            model_name=self._model,
+            provider_params={
+                "temperature": temperature,
+                "max_tokens": 1200,
+                "base_url": self._base_url,
+            },
+        )
+
+
+def _extract_gemini_text(payload: dict[str, Any]) -> str:
+    candidates = payload.get("candidates")
+    if not isinstance(candidates, list) or not candidates:
+        raise LLMProviderError("Gemini response did not include candidates")
+    parts = candidates[0].get("content", {}).get("parts", [])
+    if not isinstance(parts, list):
+        raise LLMProviderError("Gemini response did not include text parts")
+    texts = [part.get("text", "") for part in parts if isinstance(part, dict)]
+    content = "\n".join(text for text in texts if isinstance(text, str)).strip()
+    if not content:
+        raise LLMProviderError("Gemini returned an empty response")
+    return content
+
+
+def _extract_anthropic_text(payload: dict[str, Any]) -> str:
+    content_blocks = payload.get("content")
+    if not isinstance(content_blocks, list):
+        raise LLMProviderError("Claude response did not include content blocks")
+    texts = [
+        block.get("text", "")
+        for block in content_blocks
+        if isinstance(block, dict) and block.get("type") == "text"
+    ]
+    content = "\n".join(text for text in texts if isinstance(text, str)).strip()
+    if not content:
+        raise LLMProviderError("Claude returned an empty response")
+    return content
+
+
+def _http_status_detail(exc: httpx.HTTPStatusError) -> str:
+    body = exc.response.text.strip().replace("\n", " ")
+    if len(body) > 500:
+        body = f"{body[:500].rstrip()}..."
+    return f"{exc.response.status_code} {exc.response.reason_phrase}: {body}"
+
+
 def get_llm_provider(settings: Settings) -> LLMProvider:
     provider = settings.llm_provider.lower().strip()
     if provider == "mock":
         return MockLLMProvider()
     if provider == "ollama":
         return OllamaLLMProvider(settings)
+    if provider == "gemini":
+        return GeminiLLMProvider(settings)
+    if provider in {"claude", "anthropic"}:
+        return AnthropicLLMProvider(settings)
     if provider == "openai":
         return OpenAILLMProvider(settings)
     if provider == "openai_compatible":

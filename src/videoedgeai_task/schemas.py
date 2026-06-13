@@ -24,11 +24,28 @@ class StartPipelineResponse(BaseModel):
     tracking_id: str
 
 
+ProviderName = Literal[
+    "server",
+    "mock",
+    "gemini",
+    "openai",
+    "claude",
+    "ollama",
+    "openai_compatible",
+]
+
+
 class PipelineActionRequest(BaseModel):
-    provider: Literal["mock", "ollama", "openai", "openai_compatible"] = "mock"
+    provider: ProviderName = "server"
     openai_api_key: str | None = Field(default=None, repr=False)
     openai_model: str | None = None
     openai_base_url: str | None = None
+    gemini_api_key: str | None = Field(default=None, repr=False)
+    gemini_model: str | None = None
+    gemini_base_url: str | None = None
+    anthropic_api_key: str | None = Field(default=None, repr=False)
+    anthropic_model: str | None = None
+    anthropic_base_url: str | None = None
     ollama_base_url: str | None = None
     ollama_model: str | None = None
 
@@ -36,6 +53,12 @@ class PipelineActionRequest(BaseModel):
         "openai_api_key",
         "openai_model",
         "openai_base_url",
+        "gemini_api_key",
+        "gemini_model",
+        "gemini_base_url",
+        "anthropic_api_key",
+        "anthropic_model",
+        "anthropic_base_url",
         "ollama_base_url",
         "ollama_model",
     )

@@ -10,6 +10,7 @@ import pytest
 from videoedgeai_task.config import Settings
 from videoedgeai_task.llm import (
     AuditParseError,
+    GeminiLLMProvider,
     MockLLMProvider,
     OllamaLLMProvider,
     get_llm_provider,
@@ -105,6 +106,13 @@ def test_provider_selection_supports_ollama(settings: Settings) -> None:
     assert isinstance(provider, OllamaLLMProvider)
 
 
+def test_provider_selection_supports_gemini(settings: Settings) -> None:
+    provider = get_llm_provider(
+        replace(settings, llm_provider="gemini", gemini_api_key="test-key")
+    )
+    assert isinstance(provider, GeminiLLMProvider)
+
+
 async def test_ollama_provider_uses_chat_json_contract(
     settings: Settings,
     monkeypatch: pytest.MonkeyPatch,
@@ -160,3 +168,74 @@ async def test_ollama_provider_uses_chat_json_contract(
     assert requests[0]["json"]["stream"] is False
     assert requests[0]["json"]["format"] == "json"
     assert requests[0]["json"]["options"]["temperature"] == 0.2
+
+
+async def test_gemini_provider_uses_generate_content_contract(
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    requests: list[dict[str, Any]] = []
+
+    class FakeAsyncClient:
+        def __init__(self, *, timeout: int) -> None:
+            self.timeout = timeout
+
+        async def __aenter__(self) -> FakeAsyncClient:
+            return self
+
+        async def __aexit__(self, *args: object) -> None:
+            return None
+
+        async def post(
+            self,
+            url: str,
+            *,
+            headers: dict[str, str],
+            json: dict[str, Any],
+        ) -> httpx.Response:
+            requests.append(
+                {"url": url, "headers": headers, "json": json, "timeout": self.timeout}
+            )
+            return httpx.Response(
+                200,
+                request=httpx.Request("POST", url),
+                json={
+                    "candidates": [
+                        {
+                            "content": {
+                                "parts": [
+                                    {
+                                        "text": (
+                                            '{"is_perfect": false, "quality_score": 72, '
+                                            '"rationale": "Needs audience.", '
+                                            '"suggestions": ["Add a clearer audience."]}'
+                                        )
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+            )
+
+    monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
+    provider = GeminiLLMProvider(
+        replace(
+            settings,
+            llm_provider="gemini",
+            gemini_api_key="test-key",
+            gemini_model="gemini-test",
+            llm_timeout_seconds=7,
+        )
+    )
+
+    response = await provider.suggest_improvements("make notes better for founders")
+
+    assert response.model_name == "gemini-test"
+    assert response.provider_params["base_url"] == "https://generativelanguage.googleapis.com"
+    assert requests[0]["url"] == (
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-test:generateContent"
+    )
+    assert requests[0]["headers"] == {"x-goog-api-key": "test-key"}
+    assert requests[0]["timeout"] == 7
+    assert requests[0]["json"]["generationConfig"]["responseMimeType"] == "application/json"

@@ -6,10 +6,13 @@ Each LLM call receives only the current text and the immediate suggestions it ne
 history is never passed to the provider. The database stores continuity through `tracking_id`,
 versions, audits, and call records.
 
-## 2. Mock Provider First
+## 2. Real Provider When Configured, Mock When Not
 
-The default provider is deterministic so the reviewer can run the service without credentials.
-The OpenAI provider is optional and isolated behind the same interface.
+If `GEMINI_API_KEY` exists and `LLM_PROVIDER` is not explicitly set, the server defaults to Gemini
+so the reviewer can test with a real hosted model immediately. If no real key exists, the
+deterministic mock provider remains available so the workflow, tests, and traceability can still be
+reviewed without credentials. Gemini, GPT/OpenAI, Claude, Ollama, and OpenAI-compatible adapters
+all sit behind the same provider interface.
 
 ## 3. Persist LLM Calls
 
@@ -35,8 +38,9 @@ The deterministic metrics compare the full pipeline with a no-op baseline and a 
 baseline. This keeps the report honest: label coverage proves structure, not real writing quality,
 so the docs call out human rubric review as the next evaluation layer.
 
-## 7. Keep The API Small
+## 7. Reviewer Console Without Product Bloat
 
-The exercise does not require users, auth, queues, or a frontend. The service stays focused on the
-pipeline while still adding CI, metrics, and traceability.
+The exercise does not require users, auth, queues, or deployment infrastructure. The UI is a small
+reviewer console, not a separate product surface: it exists to make provider selection, audit
+results, text versions, metrics, and LLM traces easy to inspect.
 

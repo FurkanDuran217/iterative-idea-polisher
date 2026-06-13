@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# ruff: noqa: E501
+
 REVIEWER_CONSOLE_HTML = """
 <!doctype html>
 <html lang="en">
@@ -224,8 +226,10 @@ REVIEWER_CONSOLE_HTML = """
       border-radius: 7px;
       background: #ffffff;
       color: var(--muted);
-      display: grid;
-      place-items: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
       font-size: 13px;
       font-weight: 800;
     }
@@ -234,6 +238,20 @@ REVIEWER_CONSOLE_HTML = """
       background: var(--teal);
       border-color: var(--teal);
       color: #ffffff;
+    }
+
+    .info-dot {
+      width: 18px;
+      min-height: 18px;
+      height: 18px;
+      border: 0;
+      border-radius: 50%;
+      background: var(--blue);
+      color: #ffffff;
+      padding: 0;
+      font-size: 12px;
+      line-height: 18px;
+      font-weight: 900;
     }
 
     .provider-meta {
@@ -583,19 +601,59 @@ REVIEWER_CONSOLE_HTML = """
           <label>LLM Provider</label>
           <div class="segmented" role="radiogroup" aria-label="LLM provider">
             <label>
-              <input type="radio" name="providerChoice" value="mock" checked>
-              <span>Mock</span>
+              <input type="radio" name="providerChoice" value="server" checked>
+              <span>Server <button class="info-dot" type="button" title="Uses server env. If GEMINI_API_KEY exists, Gemini is the default; otherwise Mock is used.">i</button></span>
+            </label>
+            <label>
+              <input type="radio" name="providerChoice" value="gemini">
+              <span>Gemini <button class="info-dot" type="button" title="Get a key from Google AI Studio and paste it below, or set GEMINI_API_KEY in .env.">i</button></span>
+            </label>
+            <label>
+              <input type="radio" name="providerChoice" value="openai">
+              <span>GPT <button class="info-dot" type="button" title="Create an OpenAI API key and paste it below, or set OPENAI_API_KEY in .env.">i</button></span>
+            </label>
+            <label>
+              <input type="radio" name="providerChoice" value="claude">
+              <span>Claude <button class="info-dot" type="button" title="Create an Anthropic Console API key and paste it below, or set ANTHROPIC_API_KEY in .env.">i</button></span>
             </label>
             <label>
               <input type="radio" name="providerChoice" value="ollama">
-              <span>Ollama</span>
+              <span>Ollama <button class="info-dot" type="button" title="Install Ollama, pull a model such as llama3.2:3b, and keep it running on 127.0.0.1:11434.">i</button></span>
             </label>
             <label>
-              <input type="radio" name="providerChoice" value="openai_compatible">
-              <span>API</span>
+              <input type="radio" name="providerChoice" value="mock">
+              <span>Mock <button class="info-dot" type="button" title="Deterministic offline provider for tests and demos.">i</button></span>
             </label>
           </div>
-          <div class="provider-meta" id="providerMeta">Deterministic local provider</div>
+          <div class="provider-meta" id="providerMeta">Server default provider</div>
+          <div class="provider-options hidden" id="geminiOptions">
+            <div class="field">
+              <label for="geminiApiKey">Gemini API Key</label>
+              <input id="geminiApiKey" type="password" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="field">
+              <label for="geminiModel">Gemini Model</label>
+              <input id="geminiModel" autocomplete="off" spellcheck="false" value="gemini-2.0-flash">
+            </div>
+            <div class="field">
+              <label for="geminiBaseUrl">Gemini Base URL</label>
+              <input id="geminiBaseUrl" autocomplete="off" spellcheck="false" value="https://generativelanguage.googleapis.com">
+            </div>
+          </div>
+          <div class="provider-options hidden" id="claudeOptions">
+            <div class="field">
+              <label for="anthropicApiKey">Anthropic API Key</label>
+              <input id="anthropicApiKey" type="password" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="field">
+              <label for="anthropicModel">Claude Model</label>
+              <input id="anthropicModel" autocomplete="off" spellcheck="false" value="claude-sonnet-4-5">
+            </div>
+            <div class="field">
+              <label for="anthropicBaseUrl">Claude Base URL</label>
+              <input id="anthropicBaseUrl" autocomplete="off" spellcheck="false" value="https://api.anthropic.com">
+            </div>
+          </div>
           <div class="provider-options hidden" id="ollamaOptions">
             <div class="field">
               <label for="ollamaBaseUrl">Ollama Base URL</label>
@@ -726,6 +784,12 @@ REVIEWER_CONSOLE_HTML = """
         "finalizeBtn",
         "refreshBtn",
         "resetBtn",
+        "geminiApiKey",
+        "geminiModel",
+        "geminiBaseUrl",
+        "anthropicApiKey",
+        "anthropicModel",
+        "anthropicBaseUrl",
         "ollamaBaseUrl",
         "ollamaModel",
         "openaiBaseUrl",
@@ -761,8 +825,30 @@ REVIEWER_CONSOLE_HTML = """
 
     function providerPayload() {
       const provider = selectedProvider();
+      if (provider === "server") {
+        return { provider: "server" };
+      }
       if (provider === "mock") {
         return { provider: "mock" };
+      }
+
+      if (provider === "gemini") {
+        return {
+          provider: "gemini",
+          gemini_api_key: $("geminiApiKey").value.trim(),
+          gemini_model: $("geminiModel").value.trim() || "gemini-2.0-flash",
+          gemini_base_url:
+            $("geminiBaseUrl").value.trim() || "https://generativelanguage.googleapis.com",
+        };
+      }
+
+      if (provider === "claude") {
+        return {
+          provider: "claude",
+          anthropic_api_key: $("anthropicApiKey").value.trim(),
+          anthropic_model: $("anthropicModel").value.trim() || "claude-sonnet-4-5",
+          anthropic_base_url: $("anthropicBaseUrl").value.trim() || "https://api.anthropic.com",
+        };
       }
 
       if (provider === "ollama") {
@@ -773,20 +859,15 @@ REVIEWER_CONSOLE_HTML = """
         };
       }
 
-      const baseUrl = $("openaiBaseUrl").value.trim().replace(/[/]+$/, "");
+      const baseUrl = $("openaiBaseUrl").value.trim().replace(/[/]+$/, "")
+        || "https://api.openai.com/v1";
       const key = $("openaiApiKey").value.trim();
       const model = $("openaiModel").value.trim();
-      if (!baseUrl) {
-        throw new Error("API base URL required.");
-      }
-      if (baseUrl === "https://api.openai.com/v1" && !key) {
-        throw new Error("OpenAI API key required.");
-      }
       if (!model) {
         throw new Error("Model required.");
       }
       return {
-        provider: baseUrl === "https://api.openai.com/v1" ? "openai" : "openai_compatible",
+        provider: "openai",
         openai_api_key: key,
         openai_base_url: baseUrl,
         openai_model: model,
@@ -796,14 +877,24 @@ REVIEWER_CONSOLE_HTML = """
     function updateProviderUi() {
       const provider = selectedProvider();
       const isOllama = provider === "ollama";
-      const isApi = provider === "openai_compatible";
+      const isGemini = provider === "gemini";
+      const isClaude = provider === "claude";
+      const isApi = provider === "openai";
+      $("geminiOptions").className = isGemini ? "provider-options" : "provider-options hidden";
+      $("claudeOptions").className = isClaude ? "provider-options" : "provider-options hidden";
       $("ollamaOptions").className = isOllama ? "provider-options" : "provider-options hidden";
       $("openaiOptions").className = isApi ? "provider-options" : "provider-options hidden";
-      $("providerMeta").textContent = isOllama
-        ? "Local free model through Ollama"
-        : isApi
-          ? "OpenAI-compatible endpoint"
-          : "Deterministic local provider";
+      $("providerMeta").textContent = isGemini
+        ? "Google Gemini API"
+        : isClaude
+          ? "Anthropic Claude API"
+          : isOllama
+            ? "Local free model through Ollama"
+            : isApi
+              ? "OpenAI GPT API"
+              : provider === "server"
+                ? "Server default provider"
+                : "Deterministic local provider";
       $("providerFooter").textContent = "Provider: " + provider;
     }
 

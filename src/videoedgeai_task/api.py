@@ -40,7 +40,9 @@ def build_action_service(
     payload: PipelineActionRequest | None,
 ) -> PipelineService:
     action = payload or PipelineActionRequest()
-    if action.provider == "mock":
+    if action.provider == "server":
+        action_settings = settings
+    elif action.provider == "mock":
         action_settings = replace(settings, llm_provider="mock")
     elif action.provider == "ollama":
         action_settings = replace(
@@ -48,6 +50,34 @@ def build_action_service(
             llm_provider="ollama",
             ollama_base_url=action.ollama_base_url or settings.ollama_base_url,
             ollama_model=action.ollama_model or settings.ollama_model,
+        )
+    elif action.provider == "gemini":
+        api_key = action.gemini_api_key or settings.gemini_api_key
+        if not api_key:
+            raise HTTPException(
+                status_code=422,
+                detail="gemini_api_key is required when provider is gemini",
+            )
+        action_settings = replace(
+            settings,
+            llm_provider="gemini",
+            gemini_api_key=api_key,
+            gemini_model=action.gemini_model or settings.gemini_model,
+            gemini_base_url=action.gemini_base_url or settings.gemini_base_url,
+        )
+    elif action.provider == "claude":
+        api_key = action.anthropic_api_key or settings.anthropic_api_key
+        if not api_key:
+            raise HTTPException(
+                status_code=422,
+                detail="anthropic_api_key is required when provider is claude",
+            )
+        action_settings = replace(
+            settings,
+            llm_provider="claude",
+            anthropic_api_key=api_key,
+            anthropic_model=action.anthropic_model or settings.anthropic_model,
+            anthropic_base_url=action.anthropic_base_url or settings.anthropic_base_url,
         )
     elif action.provider == "openai":
         api_key = action.openai_api_key or settings.openai_api_key
