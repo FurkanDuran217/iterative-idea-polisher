@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.9.0 - Local LLM Provider
+
+- Added an Ollama provider using `/api/chat`, non-streaming responses, and JSON mode for audits.
+- Added OpenAI-compatible base URL support for local or hosted model gateways.
+- Expanded the reviewer console with Mock, Ollama, and API provider controls.
+- Added an optional `scripts/ollama_smoke.py` real-local-LLM check.
+- Added tests for Ollama provider selection and request payload shape.
+
 ## v0.8.0 - Provider Selection UI
 
 - Added request-level provider overrides for audit and finalize endpoints.

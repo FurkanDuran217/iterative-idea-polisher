@@ -8,6 +8,17 @@ The project has two deterministic evaluation paths:
 Both run without API keys. They are designed to help a reviewer inspect behavior quickly, not to
 pretend that a mock provider can prove real-world writing quality.
 
+There is also an optional local-LLM smoke path:
+
+```bash
+ollama pull llama3.2:3b
+python scripts/ollama_smoke.py
+```
+
+This is intentionally not part of the required quality gate because it depends on a reviewer having
+Ollama installed and running. It verifies that the same audit/polish provider interface works with
+a free local model.
+
 ## Metrics
 
 `scripts/evaluate_metrics.py` writes:

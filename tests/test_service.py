@@ -43,6 +43,11 @@ class EmptyPolishProvider(MockLLMProvider):
         return raw_response("   \n   ")
 
 
+class FailingAuditProvider(MockLLMProvider):
+    async def suggest_improvements(self, text: str, *, repair: bool = False) -> RawLLMResponse:
+        raise LLMProviderError("Ollama provider call failed; verify Ollama is running")
+
+
 class FailingPolishProvider(MockLLMProvider):
     async def apply_suggestions(self, text: str, suggestions: list[str]) -> RawLLMResponse:
         raise TimeoutError("provider timed out")
@@ -95,6 +100,17 @@ async def test_empty_polish_output_records_failed_llm_call(session, settings) ->
     assert detail.llm_calls[-1].success is False
     assert detail.llm_calls[-1].error == "polish response was empty"
     assert detail.llm_calls[-1].output_text_version_id is None
+
+
+async def test_provider_error_message_is_preserved_for_audit(session, settings) -> None:
+    service = PipelineService(session, FailingAuditProvider(), settings)
+    run = await service.start("make notes better for founders")
+
+    with pytest.raises(LLMProviderError, match="verify Ollama is running"):
+        await service.audit(run.tracking_id)
+
+    detail = await service.get_detail(run.tracking_id)
+    assert "verify Ollama is running" in str(detail.llm_calls[-1].error)
 
 
 async def test_polish_provider_exception_records_failed_llm_call(session, settings) -> None:

@@ -14,11 +14,14 @@ Result: passed.
 
 | Check | Result |
 | --- | --- |
-| tests | 18 passed |
+| tests | 24 passed |
 | lint | passed |
 | typecheck | passed |
 | deterministic metrics | passed |
 | prompt variants | passed |
+
+Optional Ollama smoke is available through `python scripts/ollama_smoke.py`. It is not part of the
+required quality gate because it depends on a local Ollama service and a pulled model.
 
 ## Baseline Comparison
 

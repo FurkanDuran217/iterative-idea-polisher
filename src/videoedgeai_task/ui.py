@@ -203,7 +203,7 @@ REVIEWER_CONSOLE_HTML = """
 
     .segmented {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 6px;
     }
 
@@ -587,14 +587,32 @@ REVIEWER_CONSOLE_HTML = """
               <span>Mock</span>
             </label>
             <label>
-              <input type="radio" name="providerChoice" value="openai">
-              <span>OpenAI</span>
+              <input type="radio" name="providerChoice" value="ollama">
+              <span>Ollama</span>
+            </label>
+            <label>
+              <input type="radio" name="providerChoice" value="openai_compatible">
+              <span>API</span>
             </label>
           </div>
           <div class="provider-meta" id="providerMeta">Deterministic local provider</div>
+          <div class="provider-options hidden" id="ollamaOptions">
+            <div class="field">
+              <label for="ollamaBaseUrl">Ollama Base URL</label>
+              <input id="ollamaBaseUrl" autocomplete="off" spellcheck="false" value="http://127.0.0.1:11434">
+            </div>
+            <div class="field">
+              <label for="ollamaModel">Ollama Model</label>
+              <input id="ollamaModel" autocomplete="off" spellcheck="false" value="llama3.2:3b">
+            </div>
+          </div>
           <div class="provider-options hidden" id="openaiOptions">
             <div class="field">
-              <label for="openaiApiKey">OpenAI API Key</label>
+              <label for="openaiBaseUrl">API Base URL</label>
+              <input id="openaiBaseUrl" autocomplete="off" spellcheck="false" value="https://api.openai.com/v1">
+            </div>
+            <div class="field">
+              <label for="openaiApiKey">API Key</label>
               <input id="openaiApiKey" type="password" autocomplete="off" spellcheck="false">
             </div>
             <div class="field">
@@ -708,6 +726,9 @@ REVIEWER_CONSOLE_HTML = """
         "finalizeBtn",
         "refreshBtn",
         "resetBtn",
+        "ollamaBaseUrl",
+        "ollamaModel",
+        "openaiBaseUrl",
         "openaiApiKey",
         "openaiModel",
       ].forEach((id) => {
@@ -744,24 +765,45 @@ REVIEWER_CONSOLE_HTML = """
         return { provider: "mock" };
       }
 
+      if (provider === "ollama") {
+        return {
+          provider: "ollama",
+          ollama_base_url: $("ollamaBaseUrl").value.trim() || "http://127.0.0.1:11434",
+          ollama_model: $("ollamaModel").value.trim() || "llama3.2:3b",
+        };
+      }
+
+      const baseUrl = $("openaiBaseUrl").value.trim().replace(/[/]+$/, "");
       const key = $("openaiApiKey").value.trim();
-      if (!key) {
+      const model = $("openaiModel").value.trim();
+      if (!baseUrl) {
+        throw new Error("API base URL required.");
+      }
+      if (baseUrl === "https://api.openai.com/v1" && !key) {
         throw new Error("OpenAI API key required.");
       }
+      if (!model) {
+        throw new Error("Model required.");
+      }
       return {
-        provider: "openai",
+        provider: baseUrl === "https://api.openai.com/v1" ? "openai" : "openai_compatible",
         openai_api_key: key,
-        openai_model: $("openaiModel").value.trim() || "gpt-4.1-mini",
+        openai_base_url: baseUrl,
+        openai_model: model,
       };
     }
 
     function updateProviderUi() {
       const provider = selectedProvider();
-      const isOpenAI = provider === "openai";
-      $("openaiOptions").className = isOpenAI ? "provider-options" : "provider-options hidden";
-      $("providerMeta").textContent = isOpenAI
-        ? "Real API calls for audit and polish"
-        : "Deterministic local provider";
+      const isOllama = provider === "ollama";
+      const isApi = provider === "openai_compatible";
+      $("ollamaOptions").className = isOllama ? "provider-options" : "provider-options hidden";
+      $("openaiOptions").className = isApi ? "provider-options" : "provider-options hidden";
+      $("providerMeta").textContent = isOllama
+        ? "Local free model through Ollama"
+        : isApi
+          ? "OpenAI-compatible endpoint"
+          : "Deterministic local provider";
       $("providerFooter").textContent = "Provider: " + provider;
     }
 
@@ -1034,7 +1076,13 @@ REVIEWER_CONSOLE_HTML = """
       });
 
     updateProviderUi();
-    render();
+    const initialTrackingId = new URLSearchParams(window.location.search).get("tracking_id");
+    if (initialTrackingId) {
+      $("trackingId").value = initialTrackingId;
+      refreshRun();
+    } else {
+      render();
+    }
   </script>
 </body>
 </html>

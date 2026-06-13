@@ -13,6 +13,9 @@ async def test_reviewer_console_loads(client: httpx.AsyncClient) -> None:
     assert "/api/v1/pipeline/start" in response.text
     assert "finalizeBtn" in response.text
     assert "providerChoice" in response.text
+    assert "ollamaBaseUrl" in response.text
+    assert "ollamaModel" in response.text
+    assert "openaiBaseUrl" in response.text
     assert "openaiApiKey" in response.text
 
 
@@ -95,6 +98,27 @@ async def test_openai_provider_body_requires_key(client: httpx.AsyncClient) -> N
 
     assert response.status_code == 422
     assert response.json()["detail"] == "openai_api_key is required when provider is openai"
+
+
+async def test_openai_compatible_provider_body_requires_base_url(
+    client: httpx.AsyncClient,
+) -> None:
+    start = await client.post(
+        "/api/v1/pipeline/start",
+        json={"text": "make notes better for founders"},
+    )
+    tracking_id = start.json()["tracking_id"]
+
+    response = await client.post(
+        f"/api/v1/pipeline/audit/{tracking_id}",
+        json={"provider": "openai_compatible"},
+    )
+
+    assert response.status_code == 422
+    assert (
+        response.json()["detail"]
+        == "openai_base_url is required when provider is openai_compatible"
+    )
 
 
 async def test_finalize_is_idempotent_after_completion(client: httpx.AsyncClient) -> None:
