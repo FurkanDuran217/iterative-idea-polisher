@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.10.0 - Gemini and Claude Provider Pass
+
+- Added Gemini and Claude REST providers alongside Mock, Ollama, GPT/OpenAI, and
+  OpenAI-compatible endpoints.
+- Added server-default provider behavior: `GEMINI_API_KEY` makes Gemini the default when
+  `LLM_PROVIDER` is not set; otherwise the service safely falls back to Mock.
+- Expanded reviewer-console provider choices with Server, Gemini, GPT, Claude, Ollama, and Mock.
+- Added provider help buttons and credential/model fields for Gemini and Claude.
+- Added Gemini provider contract tests and provider-body validation tests.
+
 ## v0.9.1 - Ollama Convergence Fix
 
 - Tightened audit and polish prompts for local LLMs so the loop does not drift into product-spec

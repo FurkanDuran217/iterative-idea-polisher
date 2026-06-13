@@ -50,9 +50,11 @@ Open the reviewer console:
 http://127.0.0.1:8000/
 ```
 
-The console runs with the deterministic mock provider by default. Reviewers can also switch the
-same Audit/Finalize/Full Pipeline buttons to Ollama or an OpenAI-compatible API from the UI.
-API keys are used only for that request and are not written to the database or trace log.
+The console uses the server default provider first. If `GEMINI_API_KEY` is configured and
+`LLM_PROVIDER` is not set, the server default is Gemini; otherwise it safely falls back to Mock.
+Reviewers can also switch the same Audit/Finalize/Full Pipeline buttons to Gemini, GPT, Claude,
+Ollama, or Mock from the UI. API keys are used only for that request and are not written to the
+database or trace log.
 
 On Windows, the safest way to start the console from any terminal directory is:
 
@@ -169,9 +171,25 @@ Optional per-request provider override:
 
 ```json
 {
+  "provider": "gemini",
+  "gemini_api_key": "...",
+  "gemini_model": "gemini-2.0-flash"
+}
+```
+
+```json
+{
   "provider": "openai",
   "openai_api_key": "sk-...",
   "openai_model": "gpt-4.1-mini"
+}
+```
+
+```json
+{
+  "provider": "claude",
+  "anthropic_api_key": "...",
+  "anthropic_model": "claude-sonnet-4-5"
 }
 ```
 
@@ -193,7 +211,17 @@ and air-gap proof.
 
 ## LLM Providers
 
-Default mode is deterministic and offline:
+If `GEMINI_API_KEY` is present and `LLM_PROVIDER` is not set, Gemini becomes the server default.
+If no real key is configured, the service falls back to deterministic Mock mode.
+
+Server-default Gemini mode:
+
+```env
+GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-2.0-flash
+```
+
+Deterministic offline mode:
 
 ```env
 LLM_PROVIDER=mock
@@ -205,6 +233,14 @@ Optional OpenAI mode:
 LLM_PROVIDER=openai
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4.1-mini
+```
+
+Optional Claude mode:
+
+```env
+LLM_PROVIDER=claude
+ANTHROPIC_API_KEY=...
+ANTHROPIC_MODEL=claude-sonnet-4-5
 ```
 
 Free local Ollama mode:
@@ -225,8 +261,9 @@ OPENAI_API_KEY=local
 ```
 
 The mock provider is intentional for deterministic reviewer demos. Ollama is the preferred
-credential-free real LLM path, and OpenAI-compatible mode lets a reviewer connect their own local
-or hosted model without changing application code.
+credential-free real LLM path, Gemini/GPT/Claude cover hosted production-grade providers, and
+OpenAI-compatible mode lets a reviewer connect their own local or hosted model without changing
+application code.
 
 ## Example Run
 

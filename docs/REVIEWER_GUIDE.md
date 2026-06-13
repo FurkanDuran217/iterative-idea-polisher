@@ -10,7 +10,7 @@ This project is designed so an evaluator can inspect both product reasoning and 
 | Audit endpoint | `POST /api/v1/pipeline/audit/{tracking_id}` |
 | Finalize loop | `POST /api/v1/pipeline/finalize/{tracking_id}` |
 | Reviewer console | `GET /` |
-| UI provider switch | Reviewer console supports deterministic mock, local Ollama, and API-compatible modes |
+| UI provider switch | Reviewer console supports Server, Gemini, GPT, Claude, Ollama, and Mock modes |
 | Air-gapped LLM calls | `PipelineService` passes only current text/suggestions to the provider |
 | Model declares text perfect | Audit response includes `is_perfect`, `quality_score`, and `rationale` |
 | DB persistence | `pipeline_runs`, `text_versions`, `audits`, `llm_calls` |
@@ -29,8 +29,8 @@ This project is designed so an evaluator can inspect both product reasoning and 
 - Start `scripts\run_reviewer_console.cmd` on Windows, then open `http://127.0.0.1:8000/` for
   the browser reviewer console.
 - Use the console's provider switch to compare deterministic mock runs, free local Ollama runs,
-  and OpenAI-compatible API runs. API keys entered in the UI are request-only and are not
-  persisted in `llm_calls`.
+  Gemini/GPT/Claude API runs, and server-default behavior. API keys entered in the UI are
+  request-only and are not persisted in `llm_calls`.
 - If Ollama is installed, run `ollama pull llama3.2:3b` and then
   `python scripts/ollama_smoke.py` before using the Ollama UI mode.
 - Inspect `GET /api/v1/pipeline/{tracking_id}` to see versions, audits, and LLM call records.
