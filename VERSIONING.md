@@ -13,6 +13,7 @@ This project uses semantic versioning.
 - `v0.7.0`: smart audit verdict and UI clarity pass.
 - `v0.8.0`: request-level provider override and reviewer-console provider selection pass.
 - `v0.9.0`: Ollama local LLM and OpenAI-compatible provider pass.
+- `v0.9.1`: Ollama prompt convergence fix after a real local model run.
 
 Suggested release workflow:
 

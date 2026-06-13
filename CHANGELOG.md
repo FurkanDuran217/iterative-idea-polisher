@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.9.1 - Ollama Convergence Fix
+
+- Tightened audit and polish prompts for local LLMs so the loop does not drift into product-spec
+  or implementation-detail suggestions.
+- Added a high-score optional-style suggestion guard to stop local-model style churn.
+- Verified a real local Ollama `llama3.2:3b` run through the FastAPI pipeline.
+
 ## v0.9.0 - Local LLM Provider
 
 - Added an Ollama provider using `/api/chat`, non-streaming responses, and JSON mode for audits.

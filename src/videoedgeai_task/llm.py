@@ -8,8 +8,8 @@ from typing import Any, Protocol
 
 from videoedgeai_task.config import Settings
 
-AUDIT_PROMPT_VERSION = "audit.v2"
-POLISH_PROMPT_VERSION = "polish.v2"
+AUDIT_PROMPT_VERSION = "audit.v4"
+POLISH_PROMPT_VERSION = "polish.v4"
 MAX_SUGGESTIONS = 10
 MAX_SUGGESTION_CHARS = 500
 
@@ -21,6 +21,14 @@ AUDIT_SYSTEM_PROMPT = (
 
 AUDIT_USER_PROMPT = (
     "Audit the idea for clarity, specificity, actionability, faithfulness, and reviewer fit. "
+    "Evaluate it as a concise idea brief, not as a full product specification. "
+    "Do not ask for implementation details, UI details, technology stack, revenue projections, "
+    "or extra features unless the current text explicitly makes those necessary. "
+    "If the text states a clear user, problem, value, next step, and success measure while "
+    "preserving the original intent, mark it perfect. "
+    "Do not keep polishing just to add optional examples, anecdotes, implementation details, "
+    "or extra specificity. Scores from 90 to 100 mean is_perfect must be true and suggestions "
+    "must be empty. "
     "Return exactly this JSON shape:\n"
     "{{\n"
     '  "is_perfect": true|false,\n'
@@ -41,9 +49,11 @@ POLISH_SYSTEM_PROMPT = (
 )
 
 POLISH_USER_PROMPT = (
-    "Rewrite the text as a clean idea brief with these sections when useful: "
-    "Problem, Audience, Value, Next step, Success measure. "
-    "Avoid generic filler and do not add a product that the user did not imply.\n\n"
+    "Rewrite the text as a concise idea brief. Use plain text only with exactly these labels: "
+    "Problem:, Audience:, Value:, Next step:, Success measure:. "
+    "Avoid markdown headings, explanations, generic filler, implementation details, technology "
+    "stack choices, UI details, revenue projections, and features the user did not imply. "
+    "The output should be ready for a reviewer, not a product requirements document.\n\n"
     "Current text:\n{text}\n\n"
     "Audit suggestions:\n{suggestions}"
 )
@@ -163,6 +173,9 @@ def parse_audit_verdict(raw_output: str) -> AuditVerdict:
 
     if parsed and is_perfect:
         is_perfect = False
+    if not is_perfect and quality_score >= 90 and _only_optional_polish_suggestions(parsed):
+        is_perfect = True
+        parsed = []
     if not is_perfect and not parsed:
         raise AuditParseError("non-perfect audit responses must include suggestions")
     if is_perfect and quality_score < 90:
@@ -173,6 +186,23 @@ def parse_audit_verdict(raw_output: str) -> AuditVerdict:
         quality_score=quality_score,
         rationale=rationale,
         suggestions=parsed,
+    )
+
+
+def _only_optional_polish_suggestions(suggestions: list[str]) -> bool:
+    if not suggestions:
+        return True
+    optional_markers = (
+        "consider adding",
+        "could benefit",
+        "specific example",
+        "anecdote",
+        "illustrate",
+        "more specific details",
+    )
+    return all(
+        any(marker in suggestion.casefold() for marker in optional_markers)
+        for suggestion in suggestions
     )
 
 
