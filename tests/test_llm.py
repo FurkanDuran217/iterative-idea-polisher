@@ -43,6 +43,22 @@ def test_parse_audit_verdict_accepts_explicit_perfection() -> None:
     assert verdict.rationale == "Ready for review."
 
 
+def test_parse_audit_verdict_stops_optional_style_churn() -> None:
+    verdict = parse_audit_verdict(
+        json.dumps(
+            {
+                "is_perfect": False,
+                "quality_score": 90,
+                "rationale": "The text clearly states the problem, audience, value, next step.",
+                "suggestions": ["Consider adding a specific example or anecdote."],
+            }
+        )
+    )
+
+    assert verdict.is_perfect is True
+    assert verdict.suggestions == []
+
+
 def test_parse_audit_json_accepts_json_code_fence() -> None:
     raw = '```json\n{"suggestions": ["make it sharper"]}\n```'
     assert parse_audit_json(raw) == ["make it sharper"]
