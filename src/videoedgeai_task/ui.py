@@ -252,6 +252,7 @@ REVIEWER_CONSOLE_HTML = """
       font-size: 12px;
       line-height: 18px;
       font-weight: 900;
+      flex: 0 0 18px;
     }
 
     .provider-meta {
@@ -259,6 +260,48 @@ REVIEWER_CONSOLE_HTML = """
       font-size: 12px;
       font-weight: 700;
       margin-top: 9px;
+    }
+
+    .provider-help {
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      background: #eff6ff;
+      margin-top: 10px;
+      padding: 10px;
+      color: #1e3a8a;
+      font-size: 12px;
+    }
+
+    .provider-help-title {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: #1d4ed8;
+      font-weight: 850;
+      margin-bottom: 7px;
+    }
+
+    .provider-help p {
+      margin: 7px 0;
+    }
+
+    .provider-help ul {
+      margin: 7px 0 0;
+      padding-left: 18px;
+    }
+
+    .provider-help li + li {
+      margin-top: 4px;
+    }
+
+    code {
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+      background: #ffffff;
+      color: #17202a;
+      padding: 1px 4px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
     }
 
     .provider-options {
@@ -602,30 +645,37 @@ REVIEWER_CONSOLE_HTML = """
           <div class="segmented" role="radiogroup" aria-label="LLM provider">
             <label>
               <input type="radio" name="providerChoice" value="server" checked>
-              <span>Server <button class="info-dot" type="button" title="Uses server env. If GEMINI_API_KEY exists, Gemini is the default; otherwise Mock is used.">i</button></span>
+              <span>Server</span>
             </label>
             <label>
               <input type="radio" name="providerChoice" value="gemini">
-              <span>Gemini <button class="info-dot" type="button" title="Get a key from Google AI Studio and paste it below, or set GEMINI_API_KEY in .env.">i</button></span>
+              <span>Gemini</span>
             </label>
             <label>
               <input type="radio" name="providerChoice" value="openai">
-              <span>GPT <button class="info-dot" type="button" title="Create an OpenAI API key and paste it below, or set OPENAI_API_KEY in .env.">i</button></span>
+              <span>GPT</span>
             </label>
             <label>
               <input type="radio" name="providerChoice" value="claude">
-              <span>Claude <button class="info-dot" type="button" title="Create an Anthropic Console API key and paste it below, or set ANTHROPIC_API_KEY in .env.">i</button></span>
+              <span>Claude</span>
             </label>
             <label>
               <input type="radio" name="providerChoice" value="ollama">
-              <span>Ollama <button class="info-dot" type="button" title="Install Ollama, pull a model such as llama3.2:3b, and keep it running on 127.0.0.1:11434.">i</button></span>
+              <span>Ollama</span>
             </label>
             <label>
               <input type="radio" name="providerChoice" value="mock">
-              <span>Mock <button class="info-dot" type="button" title="Deterministic offline provider for tests and demos.">i</button></span>
+              <span>Mock</span>
             </label>
           </div>
           <div class="provider-meta" id="providerMeta">Server default provider</div>
+          <div class="provider-help" id="providerHelp">
+            <div class="provider-help-title">
+              <span class="info-dot">i</span>
+              <span id="providerHelpTitle">How this provider is connected</span>
+            </div>
+            <div id="providerHelpBody"></div>
+          </div>
           <div class="provider-options hidden" id="geminiOptions">
             <div class="field">
               <label for="geminiApiKey">Gemini API Key</label>
@@ -896,6 +946,85 @@ REVIEWER_CONSOLE_HTML = """
                 ? "Server default provider"
                 : "Deterministic local provider";
       $("providerFooter").textContent = "Provider: " + provider;
+      updateProviderHelp(provider);
+    }
+
+    function updateProviderHelp(provider) {
+      const help = {
+        server: {
+          title: "Server default: zero-click reviewer path",
+          body: `
+            <p>Use this when you want the backend to decide. The app reads local <code>.env</code> when it starts.</p>
+            <ul>
+              <li>If <code>GEMINI_API_KEY</code> exists and <code>LLM_PROVIDER</code> is empty, backend uses Gemini automatically.</li>
+              <li>If <code>LLM_PROVIDER=ollama</code> is set, no-selection runs use the local Ollama model instead.</li>
+              <li>The current server choice is shown in the top-right runtime pill after the page loads.</li>
+              <li>If no real key exists, backend falls back to <code>mock</code> so the demo always runs.</li>
+              <li>For reviewer handoff: put keys in <code>.env</code>, never in GitHub or source files.</li>
+            </ul>
+          `,
+        },
+        gemini: {
+          title: "Gemini: Google AI Studio key",
+          body: `
+            <p>Get a key from <code>https://aistudio.google.com/app/apikey</code>.</p>
+            <ul>
+              <li>Fast UI test: paste the key into <strong>Gemini API Key</strong> below and run the pipeline.</li>
+              <li>Server default: add <code>GEMINI_API_KEY=...</code> to local <code>.env</code>, leave <code>LLM_PROVIDER</code> unset, then restart uvicorn.</li>
+              <li>Model field can stay <code>gemini-2.0-flash</code>; change it only if your key/project supports another model.</li>
+              <li>A <code>401 Unauthorized</code> means the key is invalid, copied incorrectly, restricted, or the Gemini API is not enabled for that key.</li>
+              <li>A <code>429 quota</code> error means the key is recognized but the Google project has no available quota/billing for that model.</li>
+            </ul>
+          `,
+        },
+        openai: {
+          title: "GPT: OpenAI API key",
+          body: `
+            <p>Create a key from <code>https://platform.openai.com/api-keys</code>.</p>
+            <ul>
+              <li>Paste it into <strong>API Key</strong>, keep base URL as <code>https://api.openai.com/v1</code>, and choose a model.</li>
+              <li>Server env option: <code>OPENAI_API_KEY=...</code>, <code>LLM_PROVIDER=openai</code>, <code>OPENAI_MODEL=gpt-4.1-mini</code>.</li>
+              <li>For OpenAI-compatible gateways, use their base URL and model name; keep the same fields.</li>
+            </ul>
+          `,
+        },
+        claude: {
+          title: "Claude: Anthropic Console key",
+          body: `
+            <p>Create a key from <code>https://console.anthropic.com/settings/keys</code>.</p>
+            <ul>
+              <li>Paste it into <strong>Anthropic API Key</strong>, keep base URL as <code>https://api.anthropic.com</code>.</li>
+              <li>Server env option: <code>ANTHROPIC_API_KEY=...</code>, <code>LLM_PROVIDER=claude</code>, <code>ANTHROPIC_MODEL=claude-sonnet-4-5</code>.</li>
+              <li>If your account has a different model entitlement, replace the model field before running.</li>
+            </ul>
+          `,
+        },
+        ollama: {
+          title: "Ollama: free local model",
+          body: `
+            <p>Use this when you want a real LLM without paid API keys.</p>
+            <ul>
+              <li>Install Ollama, then run <code>ollama pull llama3.2:3b</code>.</li>
+              <li>Keep Ollama running; the API should answer at <code>http://127.0.0.1:11434</code>.</li>
+              <li>Leave model as <code>llama3.2:3b</code> unless you pulled a different local model.</li>
+            </ul>
+          `,
+        },
+        mock: {
+          title: "Mock: deterministic offline baseline",
+          body: `
+            <p>Use this for repeatable grading, tests, and demos when no model is available.</p>
+            <ul>
+              <li>No key, internet, or local model is required.</li>
+              <li>It proves API flow, persistence, traceability, and metrics; it is not a real quality judge.</li>
+              <li>Compare it with Ollama/Gemini/GPT/Claude runs to discuss real model behavior.</li>
+            </ul>
+          `,
+        },
+      };
+      const selected = help[provider] || help.mock;
+      $("providerHelpTitle").textContent = selected.title;
+      $("providerHelpBody").innerHTML = selected.body;
     }
 
     async function startRun() {

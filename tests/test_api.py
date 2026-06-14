@@ -13,6 +13,9 @@ async def test_reviewer_console_loads(client: httpx.AsyncClient) -> None:
     assert "/api/v1/pipeline/start" in response.text
     assert "finalizeBtn" in response.text
     assert "providerChoice" in response.text
+    assert "providerHelp" in response.text
+    assert "How this provider is connected" in response.text
+    assert "https://aistudio.google.com/app/apikey" in response.text
     assert "geminiApiKey" in response.text
     assert "anthropicApiKey" in response.text
     assert "ollamaBaseUrl" in response.text
