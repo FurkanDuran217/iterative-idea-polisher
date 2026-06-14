@@ -15,6 +15,7 @@ This project uses semantic versioning.
 - `v0.9.0`: Ollama local LLM and OpenAI-compatible provider pass.
 - `v0.9.1`: Ollama prompt convergence fix after a real local model run.
 - `v0.10.0`: Gemini and Claude provider pass with server-default Gemini support and UI help.
+- `v0.10.1`: provider help usability pass with actionable setup guidance in the console.
 
 Suggested release workflow:
 

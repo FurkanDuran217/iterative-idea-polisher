@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.10.1 - Provider Help Usability
+
+- Moved provider information out of tiny segment tooltips into the selected provider panel.
+- Added actionable setup guidance for Server default, Gemini, GPT, Claude, Ollama, and Mock.
+- Documented provider-specific key locations, `.env` variable names, model fields, and common
+  Gemini `401`/`429` failure meanings directly in the reviewer console.
+- Isolated API tests from local `.env` provider keys so reviewer machines stay deterministic.
+
 ## v0.10.0 - Gemini and Claude Provider Pass
 
 - Added Gemini and Claude REST providers alongside Mock, Ollama, GPT/OpenAI, and
