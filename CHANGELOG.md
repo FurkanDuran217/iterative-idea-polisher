@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.13.0 - Air-Gap Prompt Engineering Analysis
+
+- Added `scripts/evaluate_air_gap_cases.py` to run a real endpoint-level case matrix across
+  vague, already-ready, underspecified, education, implementation-heavy, prompt-injection-like,
+  and research-caveat inputs.
+- Added `docs/AIR_GAP_ANALYSIS.md` with real final outputs, aggregate metrics, limitations, and
+  an explicit air-gap vs stateful non-air-gap control.
+- Hardened v6 audit/polish prompts so user-provided instruction-like text is treated as untrusted
+  content and is not echoed into final briefs.
+- Added the air-gap case matrix to the quality gate.
+- Updated README and reviewer docs with the analysis command, example situations, real outputs,
+  and Gemini quota limitation.
+
 ## v0.12.0 - Reviewer Report and Similar-System Analysis
 
 - Added `GET /api/v1/pipeline/{tracking_id}/report` for a copyable Markdown handoff report.

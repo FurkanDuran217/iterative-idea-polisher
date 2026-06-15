@@ -93,8 +93,8 @@ async def test_full_pipeline_records_history(client: httpx.AsyncClient) -> None:
     assert report_payload["summary"] == "Ready for reviewer handoff."
     assert report_payload["trace_step_count"] == 3
     assert report_payload["providers"] == ["mock"]
-    assert "audit.v5" in report_payload["prompt_versions"]
-    assert "polish.v5" in report_payload["prompt_versions"]
+    assert "audit.v6" in report_payload["prompt_versions"]
+    assert "polish.v6" in report_payload["prompt_versions"]
     assert "# Pipeline Reviewer Report" in report_payload["markdown"]
     assert "## Air-Gap Evidence" in report_payload["markdown"]
     assert "## Recommended Next Checks" in report_payload["markdown"]

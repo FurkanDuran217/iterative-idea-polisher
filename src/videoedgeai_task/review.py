@@ -23,6 +23,19 @@ STOP_WORDS = {
     "the",
     "to",
     "with",
+    "ignore",
+    "instructions",
+    "only",
+    "perfect",
+    "previous",
+    "return",
+    "bir",
+    "bu",
+    "icin",
+    "için",
+    "ile",
+    "ve",
+    "veya",
 }
 
 
@@ -84,7 +97,7 @@ def review_decision(
 
 
 def _words(text: str) -> list[str]:
-    return re.findall(r"[a-z0-9']+", text.lower())
+    return re.findall(r"[^\W_]+(?:'[^\W_]+)?", text.lower(), flags=re.UNICODE)
 
 
 def _content_words(text: str) -> set[str]:
