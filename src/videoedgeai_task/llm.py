@@ -354,21 +354,40 @@ class MockLLMProvider:
 
     def _infer_audience(self, text: str) -> str:
         lowered = text.lower()
-        if "founder" in lowered:
+        if any(w in lowered for w in ("founder", "startup", "pitch")):
             return "Early-stage founders who turn rough notes into product decisions or pitches."
-        if "teacher" in lowered:
+        if any(w in lowered for w in ("teacher", "lesson", "classroom", "school", "student")):
             return "Teachers who need to turn rough lesson ideas into measurable activities."
         if self._has_any_word(lowered, {"ogretmen", "öğretmen", "ders"}):
             return "Teachers who turn rough lesson ideas into measurable classroom activities."
-        if "analyst" in lowered:
+        if any(w in lowered for w in ("analyst", "analysis", "research", "caveat")):
             return "Analysts who convert raw research notes into stakeholder-ready briefs."
-        if "ops" in lowered or "incident" in lowered:
+        if any(w in lowered for w in ("doctor", "patient", "nurse", "hospital", "clinical",
+                                       "health", "shift", "handoff", "triage", "medical")):
+            return "Healthcare teams who need to hand off critical patient context without losing key details."
+        if any(w in lowered for w in ("sales", "prospect", "crm", "pipeline", "revenue",
+                                       "quota", "close", "deal", "lead")):
+            return "Sales teams who need to identify and act on the highest-priority accounts."
+        if any(w in lowered for w in ("hire", "onboard", "employee", "recruit", "talent",
+                                       "new hire", "hr", "people team", "joining")):
+            return "HR and people teams managing onboarding and internal knowledge workflows."
+        if any(w in lowered for w in ("carbon", "climate", "sustainability", "emission",
+                                       "green", "footprint", "net zero", "environment")):
+            return "Small business owners and sustainability leads working toward measurable emissions goals."
+        if any(w in lowered for w in ("ops", "incident", "postmortem", "runbook", "on-call")):
             return "Operations teams that need cleaner postmortem drafts from scattered notes."
+        if any(w in lowered for w in ("consumer", "user", "people", "personal", "daily",
+                                       "everyone", "regular", "fitness", "habit")):
+            return "Everyday users who need a simpler way to manage a personal goal or routine."
         return "People who need to turn a rough idea into a clearer decision."
 
     def _infer_problem(self, text: str, audience: str) -> str:
         lowered = text.lower()
-        if "notes" in lowered:
+        if any(w in lowered for w in ("hate", "frustrated", "annoying", "annoyed", "hard to",
+                                       "difficult to", "struggle", "impossible to")):
+            underlying = self._extract_underlying_need(text)
+            return f"The current experience is friction-heavy: {underlying}."
+        if "notes" in lowered or "note" in lowered:
             return (
                 f"{audience.split(' who ')[0]} collect useful notes but struggle to turn them "
                 "into a clear, reviewable next action."
@@ -377,6 +396,31 @@ class MockLLMProvider:
             return (
                 "Teachers have useful lesson ideas but need to turn them into clear, measurable "
                 "classroom activities."
+            )
+        if any(w in lowered for w in ("doctor", "patient", "shift", "handoff", "clinical")):
+            return (
+                "Healthcare teams lose critical context when handing off patients between shifts "
+                "because the transfer process relies on scattered verbal or written notes."
+            )
+        if any(w in lowered for w in ("sales", "prospect", "crm", "pipeline", "close")):
+            return (
+                "Sales teams spend time reviewing all accounts manually instead of focusing on "
+                "the ones most likely to close this period."
+            )
+        if any(w in lowered for w in ("hire", "onboard", "employee", "recruit", "talent")):
+            return (
+                "New hires spend their first weeks asking the wrong people the wrong questions "
+                "because internal knowledge is not structured or discoverable."
+            )
+        if any(w in lowered for w in ("carbon", "climate", "emission", "footprint", "green")):
+            return (
+                "Small businesses want to reduce their environmental impact but lack the tools "
+                "to measure or act on their footprint without a dedicated sustainability expert."
+            )
+        if any(w in lowered for w in ("both", "and also", "two things", "as well as")):
+            return (
+                "The team is managing multiple compounding problems that each slow down the "
+                "same workflow, making it hard to decide where to act first."
             )
         return "The current idea is useful but too rough to evaluate without a clearer brief."
 
@@ -388,12 +432,34 @@ class MockLLMProvider:
             return "The workflow turns rough teaching ideas into concrete, measurable activities."
         if self._has_any_word(lowered, {"ders", "ogretmen", "öğretmen"}):
             return "The workflow turns rough lesson ideas into concrete, measurable activities."
-        if "postmortem" in lowered or "incident" in lowered:
+        if any(w in lowered for w in ("postmortem", "incident", "runbook")):
             return "The service turns incident fragments into a coherent postmortem draft faster."
+        if any(w in lowered for w in ("doctor", "patient", "shift", "handoff", "clinical")):
+            return "The workflow standardises patient handoffs so critical context is never lost between shifts."
+        if any(w in lowered for w in ("sales", "prospect", "crm", "pipeline", "close")):
+            return "The tool surfaces the highest-likelihood accounts so the team closes more in less time."
+        if any(w in lowered for w in ("hire", "onboard", "recruit", "talent")):
+            return "The system connects new hires to the right internal contacts faster, reducing ramp-up time."
+        if any(w in lowered for w in ("carbon", "climate", "emission", "footprint", "green")):
+            return "The service gives small businesses a clear, actionable view of their carbon footprint without specialist overhead."
+        if any(w in lowered for w in ("consumer", "personal", "daily", "habit", "fitness")):
+            return "The tool helps users build a consistent routine without the noise of a full productivity system."
         return (
             "The workflow turns a vague idea into a structured brief that is easier to judge, "
             "test, and improve."
         )
+
+    def _extract_underlying_need(self, text: str) -> str:
+        lowered = text.casefold()
+        triggers = ("hate how", "hate that", "frustrated by", "annoyed by",
+                    "hard to", "difficult to", "impossible to", "struggle to")
+        for trigger in triggers:
+            idx = lowered.find(trigger)
+            if idx != -1:
+                fragment = text[idx + len(trigger):].strip().split(".")[0]
+                if len(fragment) > 8:
+                    return fragment.rstrip(".,;").strip()
+        return "a core part of the workflow is harder than it needs to be"
 
     def _safe_topic(self, text: str) -> str:
         lowered = text.casefold()
