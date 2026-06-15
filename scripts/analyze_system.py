@@ -96,7 +96,10 @@ def cases() -> list[AnalysisCase]:
                 "measurable classroom activities"
             ),
             expected_polish=True,
-            risk_note="Education domain: should detect teacher audience and preserve measurable outcome.",
+            risk_note=(
+                "Education domain: should detect teacher audience and preserve "
+                "measurable outcome."
+            ),
         ),
         AnalysisCase(
             name="healthcare_shift_handoff",
@@ -184,7 +187,10 @@ def cases() -> list[AnalysisCase]:
                 "it should just know who to call based on the account"
             ),
             expected_polish=True,
-            risk_note="Negative framing: system should extract the underlying need, not echo the frustration.",
+            risk_note=(
+                "Negative framing: system should extract the underlying need, "
+                "not echo the frustration."
+            ),
         ),
         AnalysisCase(
             name="multilingual_turkish",
@@ -212,7 +218,10 @@ def cases() -> list[AnalysisCase]:
                 "ticket routing — they are both causing churn"
             ),
             expected_polish=True,
-            risk_note="Compound problem: system should not split the brief or pick only one problem.",
+            risk_note=(
+                "Compound problem: system should not split the brief or pick "
+                "only one problem."
+            ),
         ),
     ]
 
@@ -473,7 +482,10 @@ def render(payload: dict[str, Any]) -> str:  # noqa: PLR0912
         "",
         "## Results by Domain Category",
         "",
-        "| Category | Cases | Completed | Avg Iter | Avg Faithfulness | Avg Quality Δ | Generic Fallback |",
+        (
+            "| Category | Cases | Completed | Avg Iter | Avg Faithfulness | "
+            "Avg Quality Δ | Generic Fallback |"
+        ),
         "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for cat, row in cats.items():
@@ -690,7 +702,7 @@ def _air_gap_section(results: list[dict[str, Any]]) -> str:
             "",
             "**Key demonstration (`already_reviewer_ready`):**",
             "",
-            f"- Fresh audit at iteration 0: `is_perfect=true`, quality_score=96, 0 suggestions.",
+            "- Fresh audit at iteration 0: `is_perfect=true`, quality_score=96, 0 suggestions.",
             f"- Iterations run: {already_ready['iteration_count']}. Text unchanged.",
             "- A stateful (non-air-gap) judge that saw its own prior audit would likely "
             "ratify the output as improved even though nothing changed. The fresh air-gap "
@@ -732,7 +744,12 @@ def _domain_section(results: list[dict[str, Any]]) -> str:
         "| --- | --- | --- | --- |",
     ]
     for r in results:
-        audience = r["audience_line"][:60] + "…" if len(r["audience_line"]) > 60 else r["audience_line"]
+        audience_line = r["audience_line"]
+        audience = (
+            audience_line[:60] + "…"
+            if len(audience_line) > 60
+            else audience_line
+        )
         lines.append(
             f"| {r['name']} | {r['category']} | {audience} | {r['domain_generic_fallback']} |"
         )
@@ -826,10 +843,10 @@ def main() -> int:
     args = parser.parse_args()
     payload = asyncio.run(run(args.write_docs))
     print(json.dumps(payload["aggregate"], indent=2, ensure_ascii=False))
-    print(f"\nwrote outputs/system_analysis.json")
-    print(f"wrote outputs/system_analysis_report.md")
+    print("\nwrote outputs/system_analysis.json")
+    print("wrote outputs/system_analysis_report.md")
     if args.write_docs:
-        print(f"wrote docs/SYSTEM_PERFORMANCE.md")
+        print("wrote docs/SYSTEM_PERFORMANCE.md")
     return 0
 
 
