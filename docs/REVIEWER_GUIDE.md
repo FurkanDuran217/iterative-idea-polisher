@@ -11,12 +11,16 @@ This project is designed so an evaluator can inspect both product reasoning and 
 | Finalize loop | `POST /api/v1/pipeline/finalize/{tracking_id}` |
 | Reviewer console | `GET /` |
 | UI provider switch | Reviewer console supports Server, Gemini, GPT, Claude, Ollama, and Mock modes |
+| Provider setup help | Blue `i` button in the reviewer console provider card |
 | Air-gapped LLM calls | `PipelineService` passes only current text/suggestions to the provider |
 | Model declares text perfect | Audit response includes `is_perfect`, `quality_score`, and `rationale` |
 | DB persistence | `pipeline_runs`, `text_versions`, `audits`, `llm_calls` |
 | Prompts | `src/videoedgeai_task/llm.py` |
 | Full run example | `python scripts/demo.py` |
 | Metrics, baselines, and convergence | `python scripts/evaluate_metrics.py` |
+| Original-vs-final review API | `GET /api/v1/pipeline/{tracking_id}/review` |
+| Reviewer handoff report | `GET /api/v1/pipeline/{tracking_id}/report` |
+| Similar-system analysis | `docs/SYSTEM_ANALYSIS.md` |
 | Prompt variant rationale | `python scripts/evaluate_prompt_variants.py` |
 | Evaluation methodology | `docs/EVALUATION.md` |
 | Committed evaluation snapshot | `docs/EVALUATION_RESULTS.md` |
@@ -31,10 +35,16 @@ This project is designed so an evaluator can inspect both product reasoning and 
 - Use the console's provider switch to compare deterministic mock runs, free local Ollama runs,
   Gemini/GPT/Claude API runs, and server-default behavior. API keys entered in the UI are
   request-only and are not persisted in `llm_calls`.
+- Use the blue `i` button next to `LLM Provider` for provider-specific setup steps and key
+  locations. Server mode should be the zero-click path when `GEMINI_API_KEY` is configured.
 - If Ollama is installed, run `ollama pull llama3.2:3b` and then
   `python scripts/ollama_smoke.py` before using the Ollama UI mode.
 - Inspect `GET /api/v1/pipeline/{tracking_id}` to see versions, audits, and LLM call records.
 - Inspect `GET /api/v1/pipeline/{tracking_id}/metrics` to see compact traceability metrics.
+- Inspect `GET /api/v1/pipeline/{tracking_id}/review` to compare original and current text with
+  structure, faithfulness, clarity, actionability, and quality proxy scores.
+- Inspect `GET /api/v1/pipeline/{tracking_id}/report` for a copyable handoff report that combines
+  decision, score deltas, trace evidence, prompt versions, providers, and next checks.
 - Confirm the latest audit verdict exposes whether the fresh model call declared the text perfect.
 - Inspect each `llm_calls` item for prompt version, exact request payload, provider params, model,
   input text version id, and output text version id.

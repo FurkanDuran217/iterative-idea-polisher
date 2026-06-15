@@ -8,6 +8,10 @@ The project has two deterministic evaluation paths:
 Both run without API keys. They are designed to help a reviewer inspect behavior quickly, not to
 pretend that a mock provider can prove real-world writing quality.
 
+For a single live run, `GET /api/v1/pipeline/{tracking_id}/review` exposes the same style of
+deterministic original-vs-current comparison through the API. Use that endpoint after `finalize`
+when you want a compact answer to whether the pipeline probably improved the submitted idea.
+
 There is also an optional local-LLM smoke path:
 
 ```bash

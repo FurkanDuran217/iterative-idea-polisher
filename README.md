@@ -34,6 +34,10 @@ For a compact summary, `GET /api/v1/pipeline/{tracking_id}/metrics` returns vers
 counts, LLM call success, word delta, the latest perfection verdict, and an air-gap trace flag.
 The detailed run endpoint also exposes each LLM call's prompt version, exact request payload,
 provider parameters, model name, input text version, and output text version when applicable.
+`GET /api/v1/pipeline/{tracking_id}/review` compares the original and current text with a small
+deterministic rubric so the final "is this better?" question can be inspected through the API.
+`GET /api/v1/pipeline/{tracking_id}/report` returns a compact Markdown handoff report with the
+decision, score deltas, trace evidence, prompt versions, providers, and next checks.
 
 ## Quick Start
 
@@ -209,6 +213,28 @@ Returns the run, text versions, audit records, and LLM call metadata.
 Returns compact traceability metrics for versions, audits, LLM calls, word delta, latest verdict,
 and air-gap proof.
 
+### `GET /api/v1/pipeline/{tracking_id}/review`
+
+Returns an original-vs-current comparison with deterministic review scores:
+
+- `structure_coverage`: whether the reviewer labels are present.
+- `faithfulness_recall`: how many meaningful original words remain represented.
+- `clarity_proxy_score`: reviewable length and paragraph structure.
+- `actionability_score`: presence of a next step and success measure.
+- `quality_proxy_score`: a compact average of the above signals.
+
+The response also includes `likely_better_than_original`, `decision_rationale`, and
+`air_gap_trace_ok`. These are intentionally review aids, not a replacement for human judgment.
+
+### `GET /api/v1/pipeline/{tracking_id}/report`
+
+Returns a reviewer-ready Markdown report plus structured metadata:
+
+- `summary`: whether the run is ready for handoff.
+- `markdown`: original text, current text, score table, latest audit verdict, and trace evidence.
+- `recommended_next_checks`: concrete follow-up checks before submission.
+- `prompt_versions` and `providers`: quick provenance for the LLM calls used in the run.
+
 ## LLM Providers
 
 If `GEMINI_API_KEY` is present and `LLM_PROVIDER` is not set, Gemini becomes the server default.
@@ -298,7 +324,7 @@ Audience: Early-stage founders who turn rough notes into product decisions or pi
 
 Value: The service turns messy product notes into a clearer pitch or roadmap input.
 
-Next step: Test the brief with one realistic user who would say: make a tool that helps busy founders turn messy product notes into clearer pitches.
+Next step: Test this brief with one target user using the original idea: make a tool that helps busy founders turn messy product notes into clearer pitches.
 
 Success measure: A reviewer can identify the user, problem, benefit, next step, and evaluation criterion without asking follow-up questions.
 ```
@@ -328,3 +354,13 @@ I would compare original and final text with a small rubric:
 
 For production, I would store these rubric scores alongside versions and use them to detect whether
 the pipeline is only making text longer or genuinely making it easier to evaluate.
+
+This implementation now exposes the same kind of check at:
+
+```text
+GET /api/v1/pipeline/{tracking_id}/review
+```
+
+The endpoint returns the original and current scores, the quality delta, a likely-better flag, and
+the air-gap trace status. I would still pair that with human review before claiming objective
+quality improvement.

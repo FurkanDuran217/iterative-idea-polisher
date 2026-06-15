@@ -20,6 +20,7 @@ from videoedgeai_task.llm import (
     parse_audit_verdict,
 )
 from videoedgeai_task.models import Audit, LLMCall, PipelineRun, TextVersion
+from videoedgeai_task.review import TextReviewScore, review_decision, score_text_against_original
 from videoedgeai_task.utils import normalize_input_text, normalize_model_text, stable_hash
 
 
@@ -59,6 +60,39 @@ class PipelineMetrics:
     latest_is_perfect: bool | None
     latest_quality_score: int | None
     latest_rationale: str | None
+
+
+@dataclass(frozen=True)
+class PipelineReview:
+    tracking_id: str
+    status: str
+    original_text: str
+    current_text: str
+    original_score: TextReviewScore
+    current_score: TextReviewScore
+    quality_delta: float
+    word_delta: int
+    likely_better_than_original: bool
+    decision_rationale: str
+    air_gap_trace_ok: bool
+    version_count: int
+    audit_count: int
+    llm_call_count: int
+    polish_iteration_count: int
+    latest_needs_polish: bool | None
+    latest_is_perfect: bool | None
+
+
+@dataclass(frozen=True)
+class PipelineReport:
+    tracking_id: str
+    status: str
+    summary: str
+    markdown: str
+    recommended_next_checks: list[str]
+    trace_step_count: int
+    prompt_versions: list[str]
+    providers: list[str]
 
 
 class PipelineService:
@@ -423,6 +457,86 @@ class PipelineService:
             latest_rationale=latest_verdict.rationale if latest_verdict else None,
         )
 
+    async def get_review(self, tracking_id: str) -> PipelineReview:
+        run = await self.get_detail(tracking_id)
+        llm_calls = list(run.llm_calls)
+        versions = list(run.versions)
+        audits = list(run.audits)
+        latest_verdict = self._latest_audit_verdict(llm_calls)
+        prompt_types = [call.prompt_type for call in llm_calls]
+        air_gap_trace_ok = self._air_gap_trace_ok(prompt_types, llm_calls)
+        original_score = score_text_against_original(run.original_text, run.original_text)
+        current_score = score_text_against_original(run.original_text, run.current_text)
+        likely_better, rationale = review_decision(
+            original_score=original_score,
+            current_score=current_score,
+            status=run.status,
+            air_gap_trace_ok=air_gap_trace_ok,
+        )
+        return PipelineReview(
+            tracking_id=run.tracking_id,
+            status=run.status,
+            original_text=run.original_text,
+            current_text=run.current_text,
+            original_score=original_score,
+            current_score=current_score,
+            quality_delta=round(
+                current_score.quality_proxy_score - original_score.quality_proxy_score,
+                2,
+            ),
+            word_delta=current_score.word_count - original_score.word_count,
+            likely_better_than_original=likely_better,
+            decision_rationale=rationale,
+            air_gap_trace_ok=air_gap_trace_ok,
+            version_count=len(versions),
+            audit_count=len(audits),
+            llm_call_count=len(llm_calls),
+            polish_iteration_count=sum(
+                1 for version in versions if version.source_step == "polish"
+            ),
+            latest_needs_polish=audits[-1].needs_polish if audits else None,
+            latest_is_perfect=latest_verdict.is_perfect if latest_verdict else None,
+        )
+
+    async def get_report(self, tracking_id: str) -> PipelineReport:
+        run = await self.get_detail(tracking_id)
+        metrics = await self.get_metrics(tracking_id)
+        review = await self.get_review(tracking_id)
+        llm_calls = list(run.llm_calls)
+        latest_verdict = self._latest_audit_verdict(llm_calls)
+        prompt_versions = sorted({call.prompt_version for call in llm_calls})
+        providers = sorted({call.provider for call in llm_calls})
+        next_checks = self._report_next_checks(
+            status=run.status,
+            metrics=metrics,
+            review=review,
+            llm_calls=llm_calls,
+        )
+        summary = (
+            "Ready for reviewer handoff."
+            if review.likely_better_than_original and metrics.air_gap_trace_ok
+            else "Needs reviewer attention before handoff."
+        )
+        markdown = self._render_report_markdown(
+            run=run,
+            metrics=metrics,
+            review=review,
+            latest_verdict=latest_verdict,
+            next_checks=next_checks,
+            prompt_versions=prompt_versions,
+            providers=providers,
+        )
+        return PipelineReport(
+            tracking_id=run.tracking_id,
+            status=run.status,
+            summary=summary,
+            markdown=markdown,
+            recommended_next_checks=next_checks,
+            trace_step_count=len(llm_calls),
+            prompt_versions=prompt_versions,
+            providers=providers,
+        )
+
     async def _get_run(self, tracking_id: str) -> PipelineRun:
         result = await self._session.execute(
             select(PipelineRun).where(PipelineRun.tracking_id == tracking_id)
@@ -559,3 +673,113 @@ class PipelineService:
                     suggestions=suggestions,
                 )
         return None
+
+    def _report_next_checks(
+        self,
+        *,
+        status: str,
+        metrics: PipelineMetrics,
+        review: PipelineReview,
+        llm_calls: list[LLMCall],
+    ) -> list[str]:
+        checks: list[str] = []
+        if status != "completed":
+            checks.append("Run finalize until the latest fresh audit declares the text perfect.")
+        if not metrics.air_gap_trace_ok:
+            checks.append("Inspect LLM call trace metadata before relying on the result.")
+        if not review.likely_better_than_original:
+            checks.append(
+                "Ask a human reviewer to compare original and final text before submission."
+            )
+        failed_calls = [call for call in llm_calls if not call.success]
+        if failed_calls:
+            checks.append("Resolve failed provider calls before presenting this run as clean.")
+        if metrics.latest_quality_score is not None and metrics.latest_quality_score < 90:
+            checks.append(
+                "Review the latest audit suggestions; quality score is below the ready range."
+            )
+        if not checks:
+            checks.append("Have one human reviewer confirm faithfulness and usefulness.")
+        return checks
+
+    def _render_report_markdown(
+        self,
+        *,
+        run: PipelineRun,
+        metrics: PipelineMetrics,
+        review: PipelineReview,
+        latest_verdict: AuditVerdict | None,
+        next_checks: list[str],
+        prompt_versions: list[str],
+        providers: list[str],
+    ) -> str:
+        verdict_line = "No audit verdict recorded."
+        if latest_verdict is not None:
+            verdict_line = (
+                f"{'Perfect' if latest_verdict.is_perfect else 'Needs polish'} "
+                f"({latest_verdict.quality_score}/100): {latest_verdict.rationale}"
+            )
+        lines = [
+            "# Pipeline Reviewer Report",
+            "",
+            f"- Tracking ID: `{run.tracking_id}`",
+            f"- Status: `{run.status}`",
+            f"- Providers: `{', '.join(providers) if providers else 'none'}`",
+            f"- Prompt versions: `{', '.join(prompt_versions) if prompt_versions else 'none'}`",
+            f"- Air-gap trace OK: `{metrics.air_gap_trace_ok}`",
+            "",
+            "## Decision",
+            "",
+            review.decision_rationale,
+            "",
+            f"- Likely better than original: `{review.likely_better_than_original}`",
+            f"- Quality delta: `{review.quality_delta}`",
+            f"- Latest audit: {verdict_line}",
+            "",
+            "## Scores",
+            "",
+            "| Metric | Original | Current |",
+            "| --- | ---: | ---: |",
+            (
+                f"| Quality proxy | {review.original_score.quality_proxy_score} | "
+                f"{review.current_score.quality_proxy_score} |"
+            ),
+            (
+                f"| Structure coverage | {review.original_score.structure_coverage} | "
+                f"{review.current_score.structure_coverage} |"
+            ),
+            (
+                f"| Faithfulness recall | {review.original_score.faithfulness_recall} | "
+                f"{review.current_score.faithfulness_recall} |"
+            ),
+            (
+                f"| Actionability | {review.original_score.actionability_score} | "
+                f"{review.current_score.actionability_score} |"
+            ),
+            "",
+            "## Air-Gap Evidence",
+            "",
+            f"- Text versions: `{metrics.version_count}`",
+            f"- Audits: `{metrics.audit_count}`",
+            f"- LLM calls: `{metrics.llm_call_count}`",
+            f"- Successful LLM calls: `{metrics.successful_llm_call_count}`",
+            f"- Polish iterations: `{metrics.polish_iteration_count}`",
+            f"- Word delta: `{metrics.word_delta}`",
+            "",
+            "## Original Text",
+            "",
+            "```text",
+            run.original_text,
+            "```",
+            "",
+            "## Current Text",
+            "",
+            "```text",
+            run.current_text,
+            "```",
+            "",
+            "## Recommended Next Checks",
+            "",
+        ]
+        lines.extend(f"- {check}" for check in next_checks)
+        return "\n".join(lines)

@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from videoedgeai_task.config import get_settings
 from videoedgeai_task.db import configure_database, dispose_db, drop_db, get_sessionmaker, init_db
-from videoedgeai_task.llm import get_llm_provider
+from videoedgeai_task.llm import LLMProviderError, get_llm_provider
 from videoedgeai_task.service import PipelineService
 
 
@@ -48,7 +48,20 @@ def main() -> int:
         default="make a tool that helps founders clean up messy product notes",
     )
     args = parser.parse_args()
-    payload = asyncio.run(run(args.provider, args.text))
+    try:
+        payload = asyncio.run(run(args.provider, args.text))
+    except LLMProviderError as exc:
+        print(
+            json.dumps(
+                {
+                    "passed": False,
+                    "provider": args.provider,
+                    "error": str(exc),
+                },
+                indent=2,
+            )
+        )
+        return 1
     print(json.dumps(payload, indent=2))
     return 0
 

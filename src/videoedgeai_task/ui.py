@@ -240,19 +240,37 @@ REVIEWER_CONSOLE_HTML = """
       color: #ffffff;
     }
 
-    .info-dot {
-      width: 18px;
-      min-height: 18px;
-      height: 18px;
-      border: 0;
+    .provider-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 7px;
+    }
+
+    .provider-heading label {
+      margin: 0;
+    }
+
+    .info-button {
+      width: 28px;
+      min-height: 28px;
+      height: 28px;
+      border: 1px solid #bfdbfe;
       border-radius: 50%;
       background: var(--blue);
       color: #ffffff;
       padding: 0;
-      font-size: 12px;
-      line-height: 18px;
+      font-size: 14px;
+      line-height: 26px;
       font-weight: 900;
-      flex: 0 0 18px;
+      flex: 0 0 28px;
+      box-shadow: 0 6px 14px rgba(37, 99, 235, 0.18);
+    }
+
+    .info-button:hover {
+      border-color: #1d4ed8;
+      background: #1d4ed8;
     }
 
     .provider-meta {
@@ -260,6 +278,17 @@ REVIEWER_CONSOLE_HTML = """
       font-size: 12px;
       font-weight: 700;
       margin-top: 9px;
+    }
+
+    .provider-summary {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--ink);
+      font-size: 12px;
+      line-height: 1.4;
+      margin-top: 8px;
+      padding: 9px 10px;
     }
 
     .provider-help {
@@ -270,6 +299,10 @@ REVIEWER_CONSOLE_HTML = """
       padding: 10px;
       color: #1e3a8a;
       font-size: 12px;
+    }
+
+    .provider-help.hidden {
+      display: none;
     }
 
     .provider-help-title {
@@ -292,6 +325,21 @@ REVIEWER_CONSOLE_HTML = """
 
     .provider-help li + li {
       margin-top: 4px;
+    }
+
+    .help-mark {
+      width: 18px;
+      min-height: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: #ffffff;
+      display: inline-grid;
+      place-items: center;
+      font-size: 12px;
+      line-height: 18px;
+      font-weight: 900;
+      flex: 0 0 18px;
     }
 
     code {
@@ -515,6 +563,15 @@ REVIEWER_CONSOLE_HTML = """
       gap: 8px;
     }
 
+    .report-output {
+      min-height: 240px;
+      max-height: 420px;
+      overflow: auto;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
     .trace-item {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -641,7 +698,17 @@ REVIEWER_CONSOLE_HTML = """
         </div>
 
         <div class="field provider-card">
-          <label>LLM Provider</label>
+          <div class="provider-heading">
+            <label>LLM Provider</label>
+            <button
+              class="info-button"
+              id="providerInfoBtn"
+              type="button"
+              aria-expanded="false"
+              aria-controls="providerHelp"
+              title="Show provider setup help"
+            >i</button>
+          </div>
           <div class="segmented" role="radiogroup" aria-label="LLM provider">
             <label>
               <input type="radio" name="providerChoice" value="server" checked>
@@ -669,9 +736,12 @@ REVIEWER_CONSOLE_HTML = """
             </label>
           </div>
           <div class="provider-meta" id="providerMeta">Server default provider</div>
-          <div class="provider-help" id="providerHelp">
+          <div class="provider-summary" id="providerSummary">
+            Server mode uses the backend default. With this local setup, that defaults to Gemini.
+          </div>
+          <div class="provider-help hidden" id="providerHelp">
             <div class="provider-help-title">
-              <span class="info-dot">i</span>
+              <span class="help-mark">i</span>
               <span id="providerHelpTitle">How this provider is connected</span>
             </div>
             <div id="providerHelpBody"></div>
@@ -795,6 +865,38 @@ REVIEWER_CONSOLE_HTML = """
 
       <section>
         <div class="panel-header">
+          <h2>Review Score</h2>
+          <span class="pill" id="reviewPill">not scored</span>
+        </div>
+        <div class="panel-body">
+          <div class="metric-grid">
+            <div class="metric"><b id="reviewQuality">-</b><span>Quality</span></div>
+            <div class="metric"><b id="reviewDelta">-</b><span>Delta</span></div>
+            <div class="metric"><b id="reviewStructure">-</b><span>Structure</span></div>
+            <div class="metric"><b id="reviewFaithfulness">-</b><span>Faithfulness</span></div>
+            <div class="metric"><b id="reviewActionability">-</b><span>Actionability</span></div>
+          </div>
+          <div class="verdict-card" style="margin-top: 10px;">
+            <b id="reviewDecision">Not reviewed</b>
+            <span id="reviewRationale">Run or load a pipeline to compare original and current text.</span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="panel-header">
+          <h2>Reviewer Report</h2>
+          <button id="copyReportBtn" type="button">Copy Report</button>
+        </div>
+        <div class="panel-body">
+          <div class="output report-output empty" id="reportText">
+            Run or load a pipeline to generate a reviewer-ready report.
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="panel-header">
           <h2>LLM Trace</h2>
           <button id="refreshBtn" type="button">Refresh</button>
         </div>
@@ -814,8 +916,12 @@ REVIEWER_CONSOLE_HTML = """
     const state = {
       detail: null,
       metrics: null,
+      review: null,
+      report: null,
       audit: null,
       final: null,
+      health: null,
+      providerHelpOpen: false,
     };
 
     const $ = (id) => document.getElementById(id);
@@ -833,6 +939,7 @@ REVIEWER_CONSOLE_HTML = """
         "auditBtn",
         "finalizeBtn",
         "refreshBtn",
+        "copyReportBtn",
         "resetBtn",
         "geminiApiKey",
         "geminiModel",
@@ -945,22 +1052,46 @@ REVIEWER_CONSOLE_HTML = """
               : provider === "server"
                 ? "Server default provider"
                 : "Deterministic local provider";
+      $("providerSummary").textContent = providerSummary(provider);
       $("providerFooter").textContent = "Provider: " + provider;
       updateProviderHelp(provider);
+    }
+
+    function providerSummary(provider) {
+      const runtime = state.health?.provider || "loading";
+      if (provider === "server") {
+        return runtime === "gemini"
+          ? "Recommended: no extra choice needed. Server mode uses the configured Gemini key."
+          : `Server mode uses the backend default currently reported as ${runtime}.`;
+      }
+      if (provider === "gemini") {
+        return $("geminiApiKey").value.trim()
+          ? "This run will use the Gemini key entered here for this request only."
+          : "This run will use the server Gemini key if present; paste another key only to override it.";
+      }
+      if (provider === "openai") {
+        return "Use GPT or an OpenAI-compatible gateway by entering base URL, key, and model.";
+      }
+      if (provider === "claude") {
+        return "Use Claude by entering an Anthropic API key and an enabled model name.";
+      }
+      if (provider === "ollama") {
+        return "Use a local model when Ollama is running and the selected model is pulled.";
+      }
+      return "Use mock for deterministic offline demos, CI, and baseline comparison.";
     }
 
     function updateProviderHelp(provider) {
       const help = {
         server: {
-          title: "Server default: zero-click reviewer path",
+          title: "Server default: zero-click Gemini path",
           body: `
-            <p>Use this when you want the backend to decide. The app reads local <code>.env</code> when it starts.</p>
+            <p>Use this for the simplest reviewer path. The backend reads local <code>.env</code> when it starts.</p>
             <ul>
-              <li>If <code>GEMINI_API_KEY</code> exists and <code>LLM_PROVIDER</code> is empty, backend uses Gemini automatically.</li>
-              <li>If <code>LLM_PROVIDER=ollama</code> is set, no-selection runs use the local Ollama model instead.</li>
-              <li>The current server choice is shown in the top-right runtime pill after the page loads.</li>
+              <li>Keep <code>LLM_PROVIDER</code> empty and set <code>GEMINI_API_KEY</code>; no-selection runs use Gemini automatically.</li>
+              <li>The top-right runtime pill shows the active backend provider after the page loads.</li>
               <li>If no real key exists, backend falls back to <code>mock</code> so the demo always runs.</li>
-              <li>For reviewer handoff: put keys in <code>.env</code>, never in GitHub or source files.</li>
+              <li>For handoff: put keys in <code>.env</code>, never in GitHub, screenshots, logs, or source files.</li>
             </ul>
           `,
         },
@@ -969,11 +1100,11 @@ REVIEWER_CONSOLE_HTML = """
           body: `
             <p>Get a key from <code>https://aistudio.google.com/app/apikey</code>.</p>
             <ul>
-              <li>Fast UI test: paste the key into <strong>Gemini API Key</strong> below and run the pipeline.</li>
-              <li>Server default: add <code>GEMINI_API_KEY=...</code> to local <code>.env</code>, leave <code>LLM_PROVIDER</code> unset, then restart uvicorn.</li>
+              <li>Personal override: paste the key into <strong>Gemini API Key</strong> below and run the pipeline.</li>
+              <li>Shared default: add <code>GEMINI_API_KEY=...</code> to local <code>.env</code>, leave <code>LLM_PROVIDER</code> empty, then restart uvicorn.</li>
               <li>Model field can stay <code>gemini-2.0-flash</code>; change it only if your key/project supports another model.</li>
-              <li>A <code>401 Unauthorized</code> means the key is invalid, copied incorrectly, restricted, or the Gemini API is not enabled for that key.</li>
-              <li>A <code>429 quota</code> error means the key is recognized but the Google project has no available quota/billing for that model.</li>
+              <li><code>401 Unauthorized</code>: invalid key, restricted key, copied whitespace, or API not enabled.</li>
+              <li><code>429 quota</code>: key is recognized, but the Google project has no available quota for that model.</li>
             </ul>
           `,
         },
@@ -1025,6 +1156,19 @@ REVIEWER_CONSOLE_HTML = """
       const selected = help[provider] || help.mock;
       $("providerHelpTitle").textContent = selected.title;
       $("providerHelpBody").innerHTML = selected.body;
+      renderProviderHelp();
+    }
+
+    function toggleProviderHelp() {
+      state.providerHelpOpen = !state.providerHelpOpen;
+      renderProviderHelp();
+    }
+
+    function renderProviderHelp() {
+      $("providerHelp").className = state.providerHelpOpen
+        ? "provider-help"
+        : "provider-help hidden";
+      $("providerInfoBtn").setAttribute("aria-expanded", String(state.providerHelpOpen));
     }
 
     async function startRun() {
@@ -1088,6 +1232,8 @@ REVIEWER_CONSOLE_HTML = """
       }
       state.detail = await requestJson("GET", `/api/v1/pipeline/${id}`);
       state.metrics = await requestJson("GET", `/api/v1/pipeline/${id}/metrics`);
+      state.review = await requestJson("GET", `/api/v1/pipeline/${id}/review`);
+      state.report = await requestJson("GET", `/api/v1/pipeline/${id}/report`);
       $("lastAction").textContent = "Loaded " + id;
       render();
     }
@@ -1103,6 +1249,8 @@ REVIEWER_CONSOLE_HTML = """
       $("trackingId").value = "";
       state.detail = null;
       state.metrics = null;
+      state.review = null;
+      state.report = null;
       state.audit = null;
       state.final = null;
       $("lastAction").textContent = "No run loaded.";
@@ -1115,10 +1263,27 @@ REVIEWER_CONSOLE_HTML = """
       try {
         await task();
       } catch (error) {
-        setNotice(error.message, true);
+        setNotice(friendlyError(error.message), true);
       } finally {
         setBusy(false);
       }
+    }
+
+    function friendlyError(message) {
+      const text = String(message || "Request failed.");
+      if (text.includes("429")) {
+        return "Provider quota is exhausted or not enabled for this model. Try Mock, Ollama, another model, or update the provider billing/quota.";
+      }
+      if (text.includes("401") || text.toLowerCase().includes("unauthorized")) {
+        return "Provider key was rejected. Check the API key, project restrictions, and whether the API is enabled.";
+      }
+      if (text.toLowerCase().includes("ollama")) {
+        return "Ollama is not reachable. Start Ollama, pull the selected model, then retry.";
+      }
+      if (text.toLowerCase().includes("connection") || text.toLowerCase().includes("network")) {
+        return "Provider connection failed. Check network access, base URL, and provider availability.";
+      }
+      return text.length > 220 ? `${text.slice(0, 220).trim()}...` : text;
     }
 
     function requireTrackingId() {
@@ -1132,6 +1297,8 @@ REVIEWER_CONSOLE_HTML = """
     function render() {
       const detail = state.detail;
       const metrics = state.metrics || {};
+      const review = state.review;
+      const report = state.report;
       const loaded = Boolean(detail);
       const audits = loaded ? detail.audits : [];
       const calls = loaded ? detail.llm_calls : [];
@@ -1163,6 +1330,8 @@ REVIEWER_CONSOLE_HTML = """
       renderOutput(detail);
       renderVerdict(verdict);
       renderSuggestions(suggestions);
+      renderReview(review);
+      renderReport(report);
       renderTrace(calls);
     }
 
@@ -1234,6 +1403,44 @@ REVIEWER_CONSOLE_HTML = """
       `).join("");
     }
 
+    function renderReview(review) {
+      if (!review) {
+        $("reviewQuality").textContent = "-";
+        $("reviewDelta").textContent = "-";
+        $("reviewStructure").textContent = "-";
+        $("reviewFaithfulness").textContent = "-";
+        $("reviewActionability").textContent = "-";
+        $("reviewPill").textContent = "not scored";
+        $("reviewPill").className = "pill";
+        $("reviewDecision").textContent = "Not reviewed";
+        $("reviewRationale").textContent = "Run or load a pipeline to compare original and current text.";
+        return;
+      }
+      const score = review.current_score || {};
+      $("reviewQuality").textContent = formatScore(score.quality_proxy_score);
+      $("reviewDelta").textContent = formatSigned(review.quality_delta);
+      $("reviewStructure").textContent = formatPercent(score.structure_coverage);
+      $("reviewFaithfulness").textContent = formatPercent(score.faithfulness_recall);
+      $("reviewActionability").textContent = formatScore(score.actionability_score);
+      $("reviewPill").textContent = review.likely_better_than_original ? "likely better" : "needs review";
+      $("reviewPill").className = review.likely_better_than_original ? "pill ok" : "pill warn";
+      $("reviewDecision").textContent = review.likely_better_than_original
+        ? "Likely better than original"
+        : "No clear rubric lift";
+      $("reviewRationale").textContent = review.decision_rationale;
+    }
+
+    function renderReport(report) {
+      const output = $("reportText");
+      if (!report) {
+        output.textContent = "Run or load a pipeline to generate a reviewer-ready report.";
+        output.className = "output report-output empty";
+        return;
+      }
+      output.textContent = report.markdown;
+      output.className = "output report-output";
+    }
+
     function renderTrace(calls) {
       const list = $("traceList");
       if (!calls.length) {
@@ -1265,6 +1472,22 @@ REVIEWER_CONSOLE_HTML = """
       `).join("");
     }
 
+    function formatScore(value) {
+      return Number.isFinite(Number(value)) ? Number(value).toFixed(2) : "-";
+    }
+
+    function formatSigned(value) {
+      if (!Number.isFinite(Number(value))) {
+        return "-";
+      }
+      const number = Number(value);
+      return `${number > 0 ? "+" : ""}${number.toFixed(2)}`;
+    }
+
+    function formatPercent(value) {
+      return Number.isFinite(Number(value)) ? `${Math.round(Number(value) * 100)}%` : "-";
+    }
+
     function escapeHtml(value) {
       return String(value).replace(/[&<>"']/g, (char) => ({
         "&": "&amp;",
@@ -1275,20 +1498,52 @@ REVIEWER_CONSOLE_HTML = """
       }[char]));
     }
 
+    async function copyReport() {
+      if (!state.report?.markdown) {
+        setNotice("No report to copy.", true);
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(state.report.markdown);
+        setNotice("Reviewer report copied.");
+      } catch {
+        setNotice("Copy failed. Select the report text manually.", true);
+      }
+    }
+
     $("runFullBtn").addEventListener("click", runFullPipeline);
     $("startBtn").addEventListener("click", startOnly);
     $("auditBtn").addEventListener("click", auditRun);
     $("finalizeBtn").addEventListener("click", finalizeRun);
     $("refreshBtn").addEventListener("click", refreshRun);
+    $("copyReportBtn").addEventListener("click", copyReport);
     $("resetBtn").addEventListener("click", resetUi);
+    $("providerInfoBtn").addEventListener("click", toggleProviderHelp);
     document.querySelectorAll('input[name="providerChoice"]').forEach((input) => {
       input.addEventListener("change", updateProviderUi);
+    });
+    [
+      "geminiApiKey",
+      "geminiModel",
+      "geminiBaseUrl",
+      "anthropicApiKey",
+      "anthropicModel",
+      "anthropicBaseUrl",
+      "ollamaBaseUrl",
+      "ollamaModel",
+      "openaiBaseUrl",
+      "openaiApiKey",
+      "openaiModel",
+    ].forEach((id) => {
+      $(id).addEventListener("input", updateProviderUi);
     });
 
     requestJson("GET", "/health")
       .then((payload) => {
+        state.health = payload;
         $("healthPill").textContent = `${payload.provider} - max ${payload.max_iterations}`;
         $("healthPill").className = "pill ok";
+        updateProviderUi();
       })
       .catch(() => {
         $("healthPill").textContent = "runtime unavailable";

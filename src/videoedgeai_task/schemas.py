@@ -159,6 +159,46 @@ class PipelineMetricsResponse(BaseModel):
     latest_rationale: str | None
 
 
+class TextReviewScoreResponse(BaseModel):
+    word_count: int
+    structure_coverage: float
+    faithfulness_recall: float
+    clarity_proxy_score: float
+    actionability_score: float
+    quality_proxy_score: float
+
+
+class PipelineReviewResponse(BaseModel):
+    tracking_id: str
+    status: str
+    original_text: str
+    current_text: str
+    original_score: TextReviewScoreResponse
+    current_score: TextReviewScoreResponse
+    quality_delta: float
+    word_delta: int
+    likely_better_than_original: bool
+    decision_rationale: str
+    air_gap_trace_ok: bool
+    version_count: int
+    audit_count: int
+    llm_call_count: int
+    polish_iteration_count: int
+    latest_needs_polish: bool | None
+    latest_is_perfect: bool | None
+
+
+class PipelineReportResponse(BaseModel):
+    tracking_id: str
+    status: str
+    summary: str
+    markdown: str
+    recommended_next_checks: list[str]
+    trace_step_count: int
+    prompt_versions: list[str]
+    providers: list[str]
+
+
 class HealthResponse(BaseModel):
     status: str
     provider: str

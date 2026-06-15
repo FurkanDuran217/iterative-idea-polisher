@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 import sys
 import time
@@ -14,6 +15,7 @@ import httpx
 
 WORKSPACE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(WORKSPACE / "src"))
+os.environ["LLM_PROVIDER"] = "mock"
 
 from videoedgeai_task.db import configure_database, dispose_db, drop_db  # noqa: E402
 from videoedgeai_task.main import app  # noqa: E402
