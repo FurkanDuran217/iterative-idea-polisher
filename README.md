@@ -10,6 +10,19 @@ changed and may defend that direction instead of judging the text cleanly. This 
 audit and polish step stateless. The only continuity is the database record keyed by `tracking_id`,
 which makes the refinement loop easier to inspect, replay, and reason about.
 
+## Task Answers at a Glance
+
+| Required README item | Where to find it |
+| --- | --- |
+| Why air-gap? | [Why Air-Gap?](#why-air-gap) above — 3 sentences |
+| What you observed (convergence, quality) | [Observations](#observations) |
+| Full run examples (start → final text) | [Example Run](#example-run) · [Representative Real Outputs](#representative-real-outputs) |
+| How to determine if the final version is better | [Is The Final Version Actually Better?](#is-the-final-version-actually-better) · `GET /api/v1/pipeline/{id}/review` |
+
+The three required endpoints (`/start`, `/audit`, `/finalize`) plus the full test suite, LLM
+tracing, and reviewer console are all in this repo. The mock provider runs without any API key so
+every script and endpoint can be verified offline.
+
 ## Architecture
 
 ```mermaid
@@ -308,16 +321,31 @@ application code.
 
 ## Example Run
 
-Input:
+The following is a complete pipeline run using the mock provider (no API key required). Each step
+is a separate HTTP call — no shared context between them.
 
-```text
-make a tool that helps busy founders turn messy product notes into clearer pitches
+**Step 1 — Start**: submit a rough idea, get back a tracking ID.
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/api/v1/pipeline/start \
+  -H "Content-Type: application/json" \
+  -d '{"text":"make a tool that helps busy founders turn messy product notes into clearer pitches"}'
 ```
 
-First audit:
+```json
+{"tracking_id": "84a9c641-fb0a-4fc9-8e6f-0f02e6d4e1aa"}
+```
+
+**Step 2 — Audit**: fresh LLM call, no prior context. Judges the text and returns structured
+suggestions.
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/api/v1/pipeline/audit/84a9c641-fb0a-4fc9-8e6f-0f02e6d4e1aa
+```
 
 ```json
 {
+  "tracking_id": "84a9c641-fb0a-4fc9-8e6f-0f02e6d4e1aa",
   "is_perfect": false,
   "quality_score": 50,
   "rationale": "The idea is promising but not yet submission-ready.",
@@ -326,11 +354,29 @@ First audit:
     "Add enough concrete context so a reviewer can understand the user, problem, benefit, and decision point.",
     "Add a measurable criterion for deciding whether the idea is better."
   ],
-  "needs_polish": true
+  "needs_polish": true,
+  "iteration": 0
 }
 ```
 
-Final output after one polish iteration:
+**Step 3 — Finalize**: applies suggestions, runs a fresh audit, repeats until perfect.
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/api/v1/pipeline/finalize/84a9c641-fb0a-4fc9-8e6f-0f02e6d4e1aa
+```
+
+```json
+{
+  "tracking_id": "84a9c641-fb0a-4fc9-8e6f-0f02e6d4e1aa",
+  "final_text": "Problem: ...\n\nAudience: ...\n\nValue: ...",
+  "iteration_count": 1,
+  "convergence_reason": "declared_perfect",
+  "version_count": 2,
+  "audit_count": 2
+}
+```
+
+Final text after one polish iteration:
 
 ```text
 Problem: Early-stage founders collect useful notes but struggle to turn them into a clear, reviewable next action.
@@ -342,6 +388,26 @@ Value: The service turns messy product notes into a clearer pitch or roadmap inp
 Next step: Test this brief with one target user using the original idea: make a tool that helps busy founders turn messy product notes into clearer pitches.
 
 Success measure: A reviewer can identify the user, problem, benefit, next step, and evaluation criterion without asking follow-up questions.
+```
+
+**Step 4 — Inspect the trace**: every LLM call's full `messages` payload, raw output, parsed
+output, prompt version, request hash, and latency is stored in the database and returned by
+`GET /api/v1/pipeline/{tracking_id}`. The `request_payload.messages` field contains the exact
+system and user prompts sent to the model — no reconstruction needed.
+
+```bash
+curl -s http://127.0.0.1:8000/api/v1/pipeline/84a9c641-fb0a-4fc9-8e6f-0f02e6d4e1aa/metrics
+```
+
+```json
+{
+  "version_count": 2,
+  "audit_count": 2,
+  "llm_call_count": 3,
+  "air_gap_trace_ok": true,
+  "latest_is_perfect": true,
+  "latest_quality_score": 96
+}
 ```
 
 ## Observations

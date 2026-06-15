@@ -38,7 +38,17 @@ The deterministic metrics compare the full pipeline with a no-op baseline and a 
 baseline. This keeps the report honest: label coverage proves structure, not real writing quality,
 so the docs call out human rubric review as the next evaluation layer.
 
-## 7. Reviewer Console Without Product Bloat
+## 7. Store the Full Messages Payload for Every LLM Call
+
+Every `llm_calls` row stores the complete `request_payload` JSON, which always includes the
+`messages` array — both the system prompt and the user prompt with full text content. The row also
+stores `raw_output` (what the model returned), `parsed_output` (the structured result after
+parsing), `request_hash` (SHA-256 of the serialised payload), `prompt_version`, `model_name`,
+`provider`, `latency_ms`, and `success`. This makes every audit and polish call independently
+reproducible: a reviewer can re-send the exact same payload to the same provider and verify the
+output is consistent with what the pipeline recorded.
+
+## 8. Reviewer Console Without Product Bloat
 
 The exercise does not require users, auth, queues, or deployment infrastructure. The UI is a small
 reviewer console, not a separate product surface: it exists to make provider selection, audit
