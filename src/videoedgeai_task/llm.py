@@ -10,27 +10,29 @@ import httpx
 
 from videoedgeai_task.config import Settings
 
-AUDIT_PROMPT_VERSION = "audit.v4"
-POLISH_PROMPT_VERSION = "polish.v4"
+AUDIT_PROMPT_VERSION = "audit.v5"
+POLISH_PROMPT_VERSION = "polish.v5"
 MAX_SUGGESTIONS = 10
 MAX_SUGGESTION_CHARS = 500
 
 AUDIT_SYSTEM_PROMPT = (
-    "You are a senior product editor inside an air-gapped refinement pipeline. "
+    "You are a strict senior product editor inside an air-gapped refinement pipeline. "
     "You receive only the current text, with no prior conversation or memory. "
-    "Judge whether the idea is ready for a reviewer. Return strict JSON only."
+    "Judge whether the idea is ready for a hiring-task reviewer. Return strict JSON only."
 )
 
 AUDIT_USER_PROMPT = (
     "Audit the idea for clarity, specificity, actionability, faithfulness, and reviewer fit. "
     "Evaluate it as a concise idea brief, not as a full product specification. "
+    "The best final output should help a reviewer quickly identify who the idea is for, what pain "
+    "it addresses, why the rewrite helps, what should be tested next, and how success is measured. "
     "Do not ask for implementation details, UI details, technology stack, revenue projections, "
     "or extra features unless the current text explicitly makes those necessary. "
     "If the text states a clear user, problem, value, next step, and success measure while "
     "preserving the original intent, mark it perfect. "
     "Do not keep polishing just to add optional examples, anecdotes, implementation details, "
-    "or extra specificity. Scores from 90 to 100 mean is_perfect must be true and suggestions "
-    "must be empty. "
+    "extra features, or ornamental specificity. Scores from 90 to 100 mean is_perfect must be "
+    "true and suggestions must be empty. "
     "Return exactly this JSON shape:\n"
     "{{\n"
     '  "is_perfect": true|false,\n'
@@ -46,16 +48,19 @@ AUDIT_USER_PROMPT = (
 
 POLISH_SYSTEM_PROMPT = (
     "You are a precise product editor inside an air-gapped pipeline. "
-    "Apply only the supplied audit suggestions to the current text. "
-    "Preserve the user's original intent. Return only the improved text."
+    "Apply only the supplied audit suggestions to the current text, infer cautiously from the "
+    "user's wording, and preserve the original intent. Return only the improved text."
 )
 
 POLISH_USER_PROMPT = (
-    "Rewrite the text as a concise idea brief. Use plain text only with exactly these labels: "
-    "Problem:, Audience:, Value:, Next step:, Success measure:. "
+    "Rewrite the text as a concise, reviewer-ready idea brief. Use plain text only with exactly "
+    "these labels in this order: Problem:, Audience:, Value:, Next step:, Success measure:. "
+    "Write one tight sentence per label. Prefer concrete wording over longer wording. "
+    "Make the next step a small validation action and the success measure observable. "
     "Avoid markdown headings, explanations, generic filler, implementation details, technology "
     "stack choices, UI details, revenue projections, and features the user did not imply. "
-    "The output should be ready for a reviewer, not a product requirements document.\n\n"
+    "The output should be about 55-95 words and ready for a reviewer, not a product requirements "
+    "document.\n\n"
     "Current text:\n{text}\n\n"
     "Audit suggestions:\n{suggestions}"
 )
@@ -329,7 +334,7 @@ class MockLLMProvider:
             f"Problem: {problem}\n\n"
             f"Audience: {audience}\n\n"
             f"Value: {value}\n\n"
-            f"Next step: Test the brief with one realistic user who would say: {topic}.\n\n"
+            f"Next step: Test this brief with one target user using the original idea: {topic}.\n\n"
             "Success measure: A reviewer can identify the user, problem, benefit, next step, "
             "and evaluation criterion without asking follow-up questions."
         )
@@ -351,7 +356,7 @@ class MockLLMProvider:
             return "Analysts who convert raw research notes into stakeholder-ready briefs."
         if "ops" in lowered or "incident" in lowered:
             return "Operations teams that need cleaner postmortem drafts from scattered notes."
-        return "The specific user group implied by the original idea."
+        return "People who need to turn a rough idea into a clearer decision."
 
     def _infer_problem(self, text: str, audience: str) -> str:
         lowered = text.lower()
@@ -693,8 +698,16 @@ def _extract_anthropic_text(payload: dict[str, Any]) -> str:
 
 def _http_status_detail(exc: httpx.HTTPStatusError) -> str:
     body = exc.response.text.strip().replace("\n", " ")
-    if len(body) > 500:
-        body = f"{body[:500].rstrip()}..."
+    try:
+        payload = exc.response.json()
+    except ValueError:
+        payload = None
+    if isinstance(payload, dict):
+        error = payload.get("error")
+        if isinstance(error, dict) and isinstance(error.get("message"), str):
+            body = error["message"].splitlines()[0].strip()
+    if len(body) > 320:
+        body = f"{body[:320].rstrip()}..."
     return f"{exc.response.status_code} {exc.response.reason_phrase}: {body}"
 
 

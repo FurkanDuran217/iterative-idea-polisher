@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.12.0 - Reviewer Report and Similar-System Analysis
+
+- Added `GET /api/v1/pipeline/{tracking_id}/report` for a copyable Markdown handoff report.
+- Added a Reviewer Report panel to the console so decision, score deltas, trace evidence,
+  prompt versions, providers, and next checks are visible in one place.
+- Added `docs/SYSTEM_ANALYSIS.md` comparing the project against LangSmith, Langfuse, promptfoo,
+  and OpenAI Evals patterns.
+- Added API tests for completed and not-yet-finalized report states.
+
+## v0.11.0 - Gemini Default UX and Prompt Pass
+
+- Added a click-to-open blue provider info button so setup guidance stays available without
+  crowding the main run controls.
+- Clarified the zero-click Server provider path for local Gemini defaults and request-level
+  provider overrides.
+- Tightened audit and polish prompts to produce shorter, reviewer-ready idea briefs with concrete
+  next steps and observable success measures.
+- Updated the mock provider output shape to better match the production prompt target.
+- Kept deterministic evaluation pinned to Mock so local Gemini defaults do not skew baseline tests.
+
 ## v0.10.1 - Provider Help Usability
 
 - Moved provider information out of tiny segment tooltips into the selected provider panel.

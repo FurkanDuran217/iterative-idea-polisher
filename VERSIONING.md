@@ -16,6 +16,8 @@ This project uses semantic versioning.
 - `v0.9.1`: Ollama prompt convergence fix after a real local model run.
 - `v0.10.0`: Gemini and Claude provider pass with server-default Gemini support and UI help.
 - `v0.10.1`: provider help usability pass with actionable setup guidance in the console.
+- `v0.11.0`: Gemini default UX and prompt pass with click-to-open provider setup help.
+- `v0.12.0`: reviewer report and similar-system analysis pass.
 
 Suggested release workflow:
 

@@ -17,9 +17,12 @@ from videoedgeai_task.schemas import (
     LLMCallRead,
     PipelineActionRequest,
     PipelineMetricsResponse,
+    PipelineReportResponse,
+    PipelineReviewResponse,
     PipelineRunRead,
     StartPipelineRequest,
     StartPipelineResponse,
+    TextReviewScoreResponse,
     TextVersionRead,
 )
 from videoedgeai_task.service import PipelineInputError, PipelineNotFoundError, PipelineService
@@ -222,6 +225,48 @@ async def get_pipeline_metrics(
     except PipelineNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return PipelineMetricsResponse(**metrics.__dict__)
+
+
+@router.get("/pipeline/{tracking_id}/review", response_model=PipelineReviewResponse)
+async def get_pipeline_review(
+    tracking_id: str,
+    service: Annotated[PipelineService, Depends(get_service)],
+) -> PipelineReviewResponse:
+    try:
+        review = await service.get_review(tracking_id)
+    except PipelineNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return PipelineReviewResponse(
+        tracking_id=review.tracking_id,
+        status=review.status,
+        original_text=review.original_text,
+        current_text=review.current_text,
+        original_score=TextReviewScoreResponse(**review.original_score.__dict__),
+        current_score=TextReviewScoreResponse(**review.current_score.__dict__),
+        quality_delta=review.quality_delta,
+        word_delta=review.word_delta,
+        likely_better_than_original=review.likely_better_than_original,
+        decision_rationale=review.decision_rationale,
+        air_gap_trace_ok=review.air_gap_trace_ok,
+        version_count=review.version_count,
+        audit_count=review.audit_count,
+        llm_call_count=review.llm_call_count,
+        polish_iteration_count=review.polish_iteration_count,
+        latest_needs_polish=review.latest_needs_polish,
+        latest_is_perfect=review.latest_is_perfect,
+    )
+
+
+@router.get("/pipeline/{tracking_id}/report", response_model=PipelineReportResponse)
+async def get_pipeline_report(
+    tracking_id: str,
+    service: Annotated[PipelineService, Depends(get_service)],
+) -> PipelineReportResponse:
+    try:
+        report = await service.get_report(tracking_id)
+    except PipelineNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return PipelineReportResponse(**report.__dict__)
 
 
 @router.get("/health", response_model=HealthResponse)
