@@ -18,6 +18,7 @@ This project uses semantic versioning.
 - `v0.10.1`: provider help usability pass with actionable setup guidance in the console.
 - `v0.11.0`: Gemini default UX and prompt pass with click-to-open provider setup help.
 - `v0.12.0`: reviewer report and similar-system analysis pass.
+- `v0.13.0`: air-gap prompt engineering analysis with real endpoint outputs and case matrix.
 
 Suggested release workflow:
 
@@ -27,6 +28,7 @@ ruff check .
 mypy src
 python scripts/evaluate_metrics.py
 python scripts/evaluate_prompt_variants.py
+python scripts/evaluate_air_gap_cases.py --write-docs
 git tag -a vX.Y.Z -m "vX.Y.Z description"
 ```
 

@@ -39,6 +39,7 @@ def main() -> int:
         ("typecheck", ["mypy", "src"]),
         ("metrics", [sys.executable, "scripts/evaluate_metrics.py"]),
         ("prompt_variants", [sys.executable, "scripts/evaluate_prompt_variants.py"]),
+        ("air_gap_cases", [sys.executable, "scripts/evaluate_air_gap_cases.py"]),
     ]
     results = [run_check(name, command) for name, command in checks]
     payload = {

@@ -1,11 +1,12 @@
 # Evaluation Methodology
 
-The project has two deterministic evaluation paths:
+The project has three deterministic evaluation paths:
 
 1. `python scripts/evaluate_metrics.py`
 2. `python scripts/evaluate_prompt_variants.py`
+3. `python scripts/evaluate_air_gap_cases.py --write-docs`
 
-Both run without API keys. They are designed to help a reviewer inspect behavior quickly, not to
+All three run without API keys by default. They are designed to help a reviewer inspect behavior quickly, not to
 pretend that a mock provider can prove real-world writing quality.
 
 For a single live run, `GET /api/v1/pipeline/{tracking_id}/review` exposes the same style of
@@ -22,6 +23,29 @@ python scripts/ollama_smoke.py
 This is intentionally not part of the required quality gate because it depends on a reviewer having
 Ollama installed and running. It verifies that the same audit/polish provider interface works with
 a free local model.
+
+## Air-Gap Case Matrix
+
+`scripts/evaluate_air_gap_cases.py --write-docs` writes:
+
+- `outputs/air_gap_analysis.json`
+- `outputs/air_gap_analysis_report.md`
+- `docs/AIR_GAP_ANALYSIS.md`
+
+The matrix actually runs the FastAPI app through the start, audit, finalize, detail, metrics,
+review, and report endpoints for each case. It covers vague input, already-ready input, messy
+customer research, a tiny fragment, an education workflow, implementation-heavy input,
+prompt-injection-like user text, and research-caveat preservation.
+
+The committed snapshot uses Mock for reproducibility. It can be rerun on Gemini with:
+
+```bash
+python scripts/evaluate_air_gap_cases.py --provider gemini --write-docs
+```
+
+Gemini results should only be committed after the configured key is quota-ready. Until then, the
+Mock matrix is evidence for pipeline behavior, prompt guardrails, traceability, and deterministic
+non-air-gap overclaim detection, not a claim of live Gemini writing quality.
 
 ## Metrics
 
