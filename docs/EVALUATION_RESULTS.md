@@ -14,12 +14,18 @@ Result: passed.
 
 | Check | Result |
 | --- | --- |
-| tests | 34 passed |
+| tests | 34 passed (CI/Linux) · 18 passed locally (WinError 5 on tmp_path, pre-existing) |
 | lint | passed |
 | typecheck | passed |
 | deterministic metrics | passed |
 | prompt variants | passed |
 | air-gap case matrix | passed |
+| system analysis | passed |
+
+`test_api.py` (11 tests) and `test_service.py` (5 tests) fail locally with `[WinError 5] Access is denied`
+on `C:\Users\...\AppData\Local\Temp\pytest-of-...`. This is a Windows `tmp_path` permission issue in
+the user's Anaconda environment, not a code defect — the same tests pass cleanly on Linux CI (34/34).
+`test_llm.py` (16 tests) and `test_utils.py` (2 tests) pass locally.
 
 Optional Ollama smoke is available through `python scripts/ollama_smoke.py`. It is not part of the
 required quality gate because it depends on a local Ollama service and a pulled model.
@@ -114,6 +120,31 @@ Next step: Test this brief with one target user using the original idea: make no
 
 Success measure: A reviewer can identify the user, problem, benefit, next step, and evaluation criterion without asking follow-up questions.
 ```
+
+## System Performance Analysis (16-case matrix, v0.14.0)
+
+`python scripts/analyze_system.py --write-docs` — real endpoint calls, Mock provider.
+
+| Metric | Value |
+| --- | ---: |
+| case_count | 16 |
+| completed_rate | 1.0 |
+| expected_polish_detection_rate | 1.0 |
+| air_gap_trace_rate | 1.0 |
+| likely_better_rate | 0.94 |
+| avg_iterations | 0.94 |
+| avg_llm_calls | 2.88 |
+| avg_structure_coverage | 1.0 |
+| avg_faithfulness_recall | 0.99 |
+| instruction_echo_count | 0 |
+| generic_fallback_count | 2 |
+| avg_total_ms | 108.5 |
+
+The two generic-fallback cases (`tiny_fragment`, `complaint_framing`) indicate the keyword-matching
+domain detection does not cover bare-minimum or complaint-framed inputs. A live LLM would infer
+those domains from semantic context rather than exact keyword matches.
+
+Full domain-by-domain breakdown and representative outputs are in `docs/SYSTEM_PERFORMANCE.md`.
 
 ## Interpretation
 

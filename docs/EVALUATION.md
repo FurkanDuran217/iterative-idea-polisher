@@ -1,10 +1,11 @@
 # Evaluation Methodology
 
-The project has three deterministic evaluation paths:
+The project has four deterministic evaluation paths:
 
 1. `python scripts/evaluate_metrics.py`
 2. `python scripts/evaluate_prompt_variants.py`
 3. `python scripts/evaluate_air_gap_cases.py --write-docs`
+4. `python scripts/analyze_system.py --write-docs`
 
 All three run without API keys by default. They are designed to help a reviewer inspect behavior quickly, not to
 pretend that a mock provider can prove real-world writing quality.
@@ -23,6 +24,30 @@ python scripts/ollama_smoke.py
 This is intentionally not part of the required quality gate because it depends on a reviewer having
 Ollama installed and running. It verifies that the same audit/polish provider interface works with
 a free local model.
+
+## System Performance Analysis
+
+`scripts/analyze_system.py --write-docs` writes:
+
+- `outputs/system_analysis.json`
+- `outputs/system_analysis_report.md`
+- `docs/SYSTEM_PERFORMANCE.md`
+
+The script runs 16 cases across 15 domain categories: founder (2 variants), education, healthcare,
+B2B/sales, HR/onboarding, sustainability, operations, research, underspecified fragment, over-specified
+implementation-heavy, complaint framing, multilingual Turkish, adversarial injection, complex scope,
+and already-ready stop condition. For each case it records:
+
+- `iteration_count` and `llm_call_count`
+- `air_gap_trace_ok`
+- `structure_coverage`: fraction of required labels present in the final output
+- `faithfulness_recall`: content-word overlap between original and final text
+- `quality_delta`: score improvement from original to final
+- `instruction_echo`: whether instruction-like user text appeared in the output
+- `domain_generic_fallback`: whether the mock provider fell back to a generic audience line
+
+The committed `docs/SYSTEM_PERFORMANCE.md` uses Mock for reproducibility. A live-LLM run can be
+produced by setting `LLM_PROVIDER=gemini` (or any other provider) before running the script.
 
 ## Air-Gap Case Matrix
 
