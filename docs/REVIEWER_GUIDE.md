@@ -23,6 +23,8 @@ This project is designed so an evaluator can inspect both product reasoning and 
 | Similar-system analysis | `docs/SYSTEM_ANALYSIS.md` |
 | Prompt variant rationale | `python scripts/evaluate_prompt_variants.py` |
 | Air-gap prompt analysis | `python scripts/evaluate_air_gap_cases.py --write-docs` |
+| 16-case system performance analysis | `python scripts/analyze_system.py --write-docs` |
+| Committed system performance report | `docs/SYSTEM_PERFORMANCE.md` |
 | Evaluation methodology | `docs/EVALUATION.md` |
 | Committed evaluation snapshot | `docs/EVALUATION_RESULTS.md` |
 | Committed air-gap analysis | `docs/AIR_GAP_ANALYSIS.md` |
@@ -31,7 +33,7 @@ This project is designed so an evaluator can inspect both product reasoning and 
 ## Excellent-Signal Checks
 
 - Run `python scripts/quality_gate.py` to execute tests, lint, type checks, deterministic metrics,
-  prompt-variant evaluation, and the air-gap case matrix.
+  prompt-variant evaluation, the air-gap case matrix, and the 16-case system performance analysis.
 - Start `scripts\run_reviewer_console.cmd` on Windows, then open `http://127.0.0.1:8000/` for
   the browser reviewer console.
 - Use the console's provider switch to compare deterministic mock runs, free local Ollama runs,
@@ -55,6 +57,8 @@ This project is designed so an evaluator can inspect both product reasoning and 
 - Read `docs/AIR_GAP_ANALYSIS.md` to inspect the real endpoint outputs for vague, already-ready,
   underspecified, education, implementation-heavy, prompt-injection-like, and research-caveat
   cases.
+- Read `docs/SYSTEM_PERFORMANCE.md` for the comprehensive 16-case analysis spanning 15 domain
+  categories with per-case faithfulness, structure, quality delta, and failure mode analysis.
 - Read `docs/EVALUATION_RESULTS.md` if you want the latest committed metric snapshot without
   running the scripts.
 - Compare `v0.1.0`, `v0.2.0`, and later tags to see the baseline implementation and improvement
