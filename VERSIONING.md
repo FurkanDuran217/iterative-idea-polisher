@@ -19,6 +19,7 @@ This project uses semantic versioning.
 - `v0.11.0`: Gemini default UX and prompt pass with click-to-open provider setup help.
 - `v0.12.0`: reviewer report and similar-system analysis pass.
 - `v0.13.0`: air-gap prompt engineering analysis with real endpoint outputs and case matrix.
+- `v0.14.0`: domain coverage expansion (10 domains) and 16-case system performance analysis.
 
 Suggested release workflow:
 

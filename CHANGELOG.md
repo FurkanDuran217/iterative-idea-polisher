@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.14.0 - Domain Coverage Expansion and System Performance Analysis
+
+- Extended Mock provider domain coverage to 10 domains: founder/startup, education, healthcare,
+  B2B/sales, HR/onboarding, sustainability/climate, consumer/personal, operations/postmortem,
+  research/analyst, and ops — including complaint-framing and Turkish keyword detection.
+- Added `scripts/analyze_system.py` — a 16-case comprehensive analysis script covering all
+  extended domains, edge cases (tiny fragment, implementation-heavy, complaint framing, multilingual
+  Turkish, prompt injection, multiple problems, already-ready) with per-case faithfulness,
+  structure coverage, quality delta, instruction-echo, and domain-generic-fallback metrics.
+- Added `docs/SYSTEM_PERFORMANCE.md` with real outputs from running the 16-case matrix: aggregate
+  results, domain-by-domain breakdown, prompt engineering quality analysis, failure modes, and
+  representative outputs for all eight highlighted cases.
+- Added System Performance Analysis section to README summarising key findings (1.0 completion
+  rate, 1.0 air-gap trace validity, 0.99 avg faithfulness, 0 instruction-echo events, 108ms avg
+  latency) and linking to the full report.
+
 ## v0.13.0 - Air-Gap Prompt Engineering Analysis
 
 - Added `scripts/evaluate_air_gap_cases.py` to run a real endpoint-level case matrix across
