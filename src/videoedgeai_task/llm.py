@@ -364,7 +364,10 @@ class MockLLMProvider:
             return "Analysts who convert raw research notes into stakeholder-ready briefs."
         if any(w in lowered for w in ("doctor", "patient", "nurse", "hospital", "clinical",
                                        "health", "shift", "handoff", "triage", "medical")):
-            return "Healthcare teams who need to hand off critical patient context without losing key details."
+            return (
+                "Healthcare teams who need to hand off critical patient context without "
+                "losing key details."
+            )
         if any(w in lowered for w in ("sales", "prospect", "crm", "pipeline", "revenue",
                                        "quota", "close", "deal", "lead")):
             return "Sales teams who need to identify and act on the highest-priority accounts."
@@ -373,7 +376,10 @@ class MockLLMProvider:
             return "HR and people teams managing onboarding and internal knowledge workflows."
         if any(w in lowered for w in ("carbon", "climate", "sustainability", "emission",
                                        "green", "footprint", "net zero", "environment")):
-            return "Small business owners and sustainability leads working toward measurable emissions goals."
+            return (
+                "Small business owners and sustainability leads working toward measurable "
+                "emissions goals."
+            )
         if any(w in lowered for w in ("ops", "incident", "postmortem", "runbook", "on-call")):
             return "Operations teams that need cleaner postmortem drafts from scattered notes."
         if any(w in lowered for w in ("consumer", "user", "people", "personal", "daily",
@@ -435,15 +441,30 @@ class MockLLMProvider:
         if any(w in lowered for w in ("postmortem", "incident", "runbook")):
             return "The service turns incident fragments into a coherent postmortem draft faster."
         if any(w in lowered for w in ("doctor", "patient", "shift", "handoff", "clinical")):
-            return "The workflow standardises patient handoffs so critical context is never lost between shifts."
+            return (
+                "The workflow standardises patient handoffs so critical context is never "
+                "lost between shifts."
+            )
         if any(w in lowered for w in ("sales", "prospect", "crm", "pipeline", "close")):
-            return "The tool surfaces the highest-likelihood accounts so the team closes more in less time."
+            return (
+                "The tool surfaces the highest-likelihood accounts so the team closes more "
+                "in less time."
+            )
         if any(w in lowered for w in ("hire", "onboard", "recruit", "talent")):
-            return "The system connects new hires to the right internal contacts faster, reducing ramp-up time."
+            return (
+                "The system connects new hires to the right internal contacts faster, "
+                "reducing ramp-up time."
+            )
         if any(w in lowered for w in ("carbon", "climate", "emission", "footprint", "green")):
-            return "The service gives small businesses a clear, actionable view of their carbon footprint without specialist overhead."
+            return (
+                "The service gives small businesses a clear, actionable view of their carbon "
+                "footprint without specialist overhead."
+            )
         if any(w in lowered for w in ("consumer", "personal", "daily", "habit", "fitness")):
-            return "The tool helps users build a consistent routine without the noise of a full productivity system."
+            return (
+                "The tool helps users build a consistent routine without the noise of a full "
+                "productivity system."
+            )
         return (
             "The workflow turns a vague idea into a structured brief that is easier to judge, "
             "test, and improve."
